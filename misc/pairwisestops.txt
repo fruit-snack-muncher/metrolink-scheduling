@@ -1,0 +1,43 @@
+"""
+# A dictionary containing all instances between pairs of consecutive stops, as they
+# appear on a trip's planned route. 
+typical_monday_pairwise_stops_per_trip = {}
+
+# Examines all stop-pair stops per trip_id, looking only through the trips in 
+# typical_stops. Stores data in a dictionary named typical_monday_stop_per_trip 
+# (empty definition at top of file). Organized:
+#
+# trip_id : departure stop_id, arrival stop_id, departure time, arrival time, stop type.
+# times are in seconds past midnight (00:00:00).
+# stop type refers to whether the stop is at the beginning, middle, or end of a trip.
+#
+# meant to be used for estimating deadhead times
+def pairwise_stop_times_for_trip(trip_id: int) -> None:
+    if trip_id in typical_monday_pairwise_stops_per_trip.keys():
+        return
+
+    trip_stop_times = typical_stops[typical_stops.trip_id == trip_id]
+    stops, _ = trip_stop_times.shape
+    pairwise_stops = []
+
+    TYPE = ['START', 'MIDDLE', 'END']
+    time_eval = lambda x: 3600*x[0] + 60*x[1] + x[2]
+
+    # Relies on the fact that the DataFrame we're pulling from already has all
+    # stops sorted in arrival order.
+    for step in range(0, stops-1):
+        departure, arrival = trip_stop_times.iloc[step], trip_stop_times.iloc[step+1]
+        departure_stop, arrival_stop = int(departure.stop_id), int(arrival.stop_id)
+
+        # converts each string HH:MM:SS into an int, by splitting hours/minutes/seconds and
+        # applying arithmetic as per time_eval.
+        departure_time = time_eval( list( map(int, departure.departure_time.split(':')) ) )
+        arrival_time = time_eval(list( map(int, arrival.arrival_time.split(':')) ))
+    
+        pairwise_stops.append( (departure_stop, arrival_stop, departure_time, arrival_time) )
+
+    typical_monday_pairwise_stops_per_trip[trip_id] = tuple( pairwise_stops )
+    return
+
+for trip in typical_stops.trip_id:
+    pairwise_stop_times_for_trip(trip)"""
