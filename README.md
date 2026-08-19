@@ -40,7 +40,7 @@ The count is a lower bound on real equipment needs, not an operating plan.
 Deadheading (repositioning an empty set) is not modelled, so a set can only pick
 up a trip where it last stopped. Consist size, maintenance windows, crew rules,
 and yard capacity are all out of scope, and every set is treated as
-interchangeable. `TURNAROUND` in [preformulation.py](preformulation.py) is the
+interchangeable. `TURNAROUND` in [src/preformulation.py](src/preformulation.py) is the
 single knob controlling how conservative the result is; raising it can only
 remove chaining opportunities, never create them, so the fleet count moves
 monotonically with it.
@@ -49,31 +49,36 @@ monotonically with it.
 
 ```
 metrolink/
-├── gtfs_raw/                 Metrolink GTFS feed, exactly as published
-├── gtfs_cleaned/             Working copy of the feed, plus derived data
-│   └── typical_monday.txt      Trips active on Oct 19, 2026 (written by data_collection.py)
-├── data_collection.py        Resolves calendar.txt + calendar_dates.txt into the
-│                             services active on a given day; finds and writes the typical Monday
-├── typical_monday_trips.py   Reduces each typical-Monday trip to
-│                             (departure stop, arrival stop, departure time, arrival time)
-├── preformulation.py         valid_pair() — the chaining rule; builds the arc set of the DAG
-├── zero_depot_fleet.py       Builds and solves the min-path-cover LP; reports the fleet size
+├── gtfs_raw/                     Metrolink GTFS feed, exactly as published
+├── gtfs_cleaned/                 Working copy of the feed, plus derived data
+│   └── typical_monday.txt          Trips active on Oct 19, 2026 (written by data_collection.py)
+├── src/
+│   ├── data_collection.py        Resolves calendar.txt + calendar_dates.txt into the
+│   │                             services active on a given day; finds and writes the typical Monday
+│   ├── typical_monday_trips.py   Reduces each typical-Monday trip to
+│   │                             (departure stop, arrival stop, departure time, arrival time)
+│   ├── preformulation.py         valid_pair() — the chaining rule; builds the arc set of the DAG
+│   ├── zero_depot_fleet.py       Builds and solves the min-path-cover LP; reports the fleet size
+│   ├── fleet_min-pulp.sol        CBC's solution to that LP, kept for inspection
+│   └── conftest.py               Puts src/ on sys.path for the test suite
 ├── tests/
-│   └── test_valid_pair.py    Synthetic boundary cases, exhaustive properties over the real
-│                             schedule, and named real-world pairs
-├── conftest.py               Puts the project root on sys.path for the test suite
-├── PuLP_solver_files/        Saved MPS export of the LP, for inspection
-└── misc/                     Scratch work
+│   └── test_valid_pair.py        Synthetic boundary cases, exhaustive properties over the real
+│                                 schedule, and named real-world pairs
+├── pytest.ini                    Points pytest at tests/ and puts src/ on sys.path
+├── PuLP_solver_files/            Saved MPS export of the LP, for inspection
+└── misc/                         Scratch work
 ```
 
-Run the stages in order; each one is a plain script.
+The scripts locate `gtfs_cleaned/` relative to their own file, not the working
+directory, so they can be run from anywhere. Run the stages in order; each one
+is a plain script.
 
 ```
-python data_collection.py      # writes gtfs_cleaned/typical_monday.txt
-python typical_monday_trips.py # prints the per-trip schedule
-python preformulation.py       # prints the valid arcs
-python zero_depot_fleet.py     # solves the LP (asserts the fleet size is 38)
-pytest                         # 30 tests
+python src/data_collection.py      # writes gtfs_cleaned/typical_monday.txt
+python src/typical_monday_trips.py # prints the per-trip schedule
+python src/preformulation.py       # prints the valid arcs
+python src/zero_depot_fleet.py     # solves the LP (asserts the fleet size is 38)
+pytest                             # 30 tests
 ```
 
 ## Dependencies

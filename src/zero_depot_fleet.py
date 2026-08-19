@@ -44,7 +44,9 @@ for t in typical_monday_trip_ids_str:
     if arrivals[t]:
         prob.addConstraint(pulp.lpSum(arrivals[t]) <= 1, name = f"arriving_{t}")
 
-# Turn keepFiles on to see solver file. A copy is in PuLP_solver_files.
+# Turn keepFiles on to see the solver files; they land in the working directory.
+# Copies are kept for inspection: the MPS model in PuLP_solver_files/, and the
+# CBC solution as src/fleet_min-pulp.sol.
 prob.solve(pulp.PULP_CBC_CMD(msg=0, keepFiles=False))
 assert(pulp.LpStatus[prob.status] == "Optimal")
 
@@ -56,3 +58,38 @@ fleet_size = len(typical_monday_trip_ids) - round(pulp.value(prob.objective))
 assert(fleet_size == 38)
 
 
+# Finding the actual blocks for this solution. We know the DAG formed by taking trips
+# as nodes and chains as directed arcs (which is acyclic because no chain can go back
+# in time) decomposes into some number of directed paths. The number of paths in some
+# decomposition is precisely our minimal fleet size.
+#
+# What properties do these blocks have? Are they real-world feasible?
+
+# valid_arcs represented as a dictionary, where key: value represents an arc key -> value.
+# Only catches the arcs reported by the solver. Uses >= 0.5 to avoid any FPA error.
+# Must be sensitive to the actual solution. 
+arc_departures = {str(a): str(b) for a,b in valid_arcs 
+                  if var[f"({a}, {b})"].varValue >= 0.5}
+arc_arrivals = set( arc_departures.values() ) # fast lookup
+
+blocks = []
+for t in typical_monday_trip_ids_str:
+    if t not in arc_arrivals:
+        block, current = [t], t
+        while current in arc_departures:
+            block.append(current)
+            current = arc_departures[current]
+        blocks.append(block)
+
+blocks_dict = {i+1: blocks[i] for i in range(len(blocks))}
+
+if __name__ == "__main__":
+    # Pretty-prints the blocks.
+    for block_num, block in blocks_dict.items():
+        print(f"Block {block_num}: " if block_num >= 10 else f"Block 0{block_num}: ", end="")
+        block_length = len(block)
+        for idx, trip in enumerate(blocks_dict[block_num]):
+            if idx < block_length -1:
+                print(f"{trip} -> ", end="")
+            else:
+                print(trip)

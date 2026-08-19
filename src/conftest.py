@@ -1,15 +1,16 @@
 """
-Makes the project root importable from inside tests/, so that test modules can
-`import preformulation` without the package having to be installed.
+Makes src/ importable, so that test modules can `import preformulation` without
+the project having to be packaged and installed.
 
-pytest already prepends the directory holding the rootdir conftest.py to
-sys.path, but doing it explicitly keeps the suite runnable no matter which
-directory pytest is invoked from.
+The primary mechanism is `pythonpath = src` in the project's pytest.ini; this
+file repeats it as a fallback for invocations that never reach that config, and
+so the directory carries its own sys.path setup alongside the modules it
+applies to.
 """
 
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+SRC = Path(__file__).resolve().parent
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))

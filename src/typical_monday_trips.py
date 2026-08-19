@@ -3,7 +3,9 @@ from pathlib import Path
 import pandas as pd
 from datetime import date
 
-DATA_DIR = Path(__file__).resolve().parent / "gtfs_cleaned"
+# src/ is one level below the repo root, where the GTFS tables live.
+ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = ROOT / "gtfs_cleaned"
 
 stop_times = pd.read_csv(DATA_DIR / "stop_times.txt")
 stops = pd.read_csv(DATA_DIR / "stops.txt")

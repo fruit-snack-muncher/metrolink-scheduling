@@ -15,8 +15,10 @@ import pandas as pd
 from datetime import date
 
 # Resolve relative to this file, not the working directory, so the reads work
-# on any machine that clones the repo.
-DATA_DIR = Path(__file__).resolve().parent / "gtfs_cleaned"
+# on any machine that clones the repo and from any directory the script is run
+# from. This module lives in src/, so the repo root is one level up.
+ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = ROOT / "gtfs_cleaned"
 
 cal = pd.read_csv(DATA_DIR / "calendar.txt", dtype=str)
 cal_dates = pd.read_csv(DATA_DIR / "calendar_dates.txt", dtype=str)

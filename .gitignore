@@ -12,11 +12,15 @@ env/
 .mypy_cache/
 .ruff_cache/
 
-# Stray CBC/PuLP run artifacts dropped in the working directory by keepFiles=True.
-# The MPS export kept for inspection lives in PuLP_solver_files/ and stays tracked.
-/*-pulp.mps
-/*-pulp.sol
-/*-pulp.lp
+# Stray CBC/PuLP run artifacts dropped by keepFiles=True into whichever
+# directory zero_depot_fleet.py was invoked from - the repo root or src/.
+*-pulp.mps
+*-pulp.sol
+*-pulp.lp
+
+# ...except the two exports kept deliberately for inspection.
+!PuLP_solver_files/fleet_min-pulp.mps
+!src/fleet_min-pulp.sol
 
 # Editor / OS
 .vscode/
