@@ -34,8 +34,8 @@ from itertools import product
 
 import pytest
 
-import optimization_setup
-from optimization_setup import TURNAROUND, valid_pair
+import preformulation
+from preformulation import TURNAROUND, valid_pair
 
 # Real Metrolink stop_ids, used here purely as distinguishable labels.
 LAUS = 107  # L.A. Union Station
@@ -88,7 +88,7 @@ def synthetic(monkeypatch):
     must land. monkeypatch restores the original after each test.
     """
     monkeypatch.setattr(
-        optimization_setup, "typical_monday_trip_schedule", SYNTHETIC_SCHEDULE
+        preformulation, "typical_monday_trip_schedule", SYNTHETIC_SCHEDULE
     )
 
 
@@ -220,7 +220,7 @@ def test_unknown_trip_id_raises_keyerror(synthetic):
 
 @pytest.fixture(scope="module")
 def real_schedule():
-    return optimization_setup.typical_monday_trip_schedule
+    return preformulation.typical_monday_trip_schedule
 
 
 @pytest.fixture(scope="module")

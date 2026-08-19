@@ -10,7 +10,7 @@ stops = pd.read_csv(DATA_DIR / "stops.txt")
 trips = pd.read_csv(DATA_DIR / "trips.txt")
 
 typical_monday = pd.read_csv(DATA_DIR / "typical_monday.txt")
-typical_monday_trip_ids = set( typical_monday.trip_id.tolist() )
+typical_monday_trip_ids = typical_monday.trip_id.tolist()
 typical_monday_trip_schedule = {}
 
 # returns the sub-DataFrame of stop_times with only the given trip_id's, inputted
@@ -37,7 +37,7 @@ def typical_schedule_per_trip(trip_id: int) -> None:
 
     # converts each string HH:MM:SS into an int, by splitting hours/minutes/seconds and
     # applying arithmetic as per time_eval.
-    departure_time = time_eval( list( map(int, departure.departure_time.split(':')) ) )
+    departure_time = time_eval(list( map(int, departure.departure_time.split(':')) ))
     arrival_time = time_eval(list( map(int, arrival.arrival_time.split(':')) ))
 
     typical_monday_trip_schedule[trip_id] = (departure_stop,arrival_stop,departure_time,arrival_time)

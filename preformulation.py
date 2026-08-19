@@ -21,10 +21,8 @@ def valid_pair(tripA, tripB, turnaround=TURNAROUND) -> bool: #1200 s = 20 min
 # All valid arcs; i.e. all valid subsequent trips trip A -> trip B.
 # Will remain the set of valid directed arcs in constructing a DAG for the
 # setup of the linear program.
-valid_arcs = set(product(typical_monday_trip_ids, repeat=2))
-valid_arcs = {arc for arc in valid_arcs if valid_pair(arc[0], arc[1])}
-
-
+valid_arcs = product(typical_monday_trip_ids, repeat=2)
+valid_arcs = [arc for arc in valid_arcs if valid_pair(arc[0], arc[1])]
 
 if __name__ == "__main__":
     print(valid_arcs)
