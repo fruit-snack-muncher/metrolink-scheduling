@@ -1,6 +1,6 @@
 """
 Makes the project root importable from inside tests/, so that test modules can
-`import optimization_setup` without the package having to be installed.
+`import preformulation` without the package having to be installed.
 
 pytest already prepends the directory holding the rootdir conftest.py to
 sys.path, but doing it explicitly keeps the suite runnable no matter which

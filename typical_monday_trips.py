@@ -47,6 +47,14 @@ for trip in typical_monday_trip_ids:
     typical_schedule_per_trip(trip)
 
 if __name__ == "__main__":
-    print(typical_monday_trip_schedule)
+    # One line per trip rather than one dict repr, so the output can be read,
+    # grepped, or diffed. Hours are not capped at 24: GTFS expresses a trip that
+    # runs past midnight as e.g. 25:10:00, and the seconds count preserves that.
+    def hhmmss(seconds: int) -> str:
+        return f"{seconds // 3600:02}:{seconds // 60 % 60:02}:{seconds % 60:02}"
+
+    print(f"{len(typical_monday_trip_schedule)} trips on the typical Monday")
+    for trip_id, (dep_stop, arr_stop, dep_time, arr_time) in sorted(typical_monday_trip_schedule.items()):
+        print(f"{trip_id}  stop {dep_stop:>3} -> {arr_stop:>3}   {hhmmss(dep_time)} -> {hhmmss(arr_time)}")
 
 

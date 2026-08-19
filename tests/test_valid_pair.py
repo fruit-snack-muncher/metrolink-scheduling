@@ -1,5 +1,5 @@
 """
-Tests for optimization_setup.valid_pair.
+Tests for preformulation.valid_pair.
 
 valid_pair(A, B, turnaround) answers one question: can a single trainset run
 trip B immediately after finishing trip A? Two things have to hold.

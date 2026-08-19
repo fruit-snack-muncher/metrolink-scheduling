@@ -25,4 +25,10 @@ valid_arcs = product(typical_monday_trip_ids, repeat=2)
 valid_arcs = [arc for arc in valid_arcs if valid_pair(arc[0], arc[1])]
 
 if __name__ == "__main__":
-    print(valid_arcs)
+    # One line per arc, with the station the turn happens at and how long the
+    # set sits there, which is what makes a chaining worth eyeballing.
+    print(f"{len(valid_arcs)} valid chainings among {len(typical_monday_trip_ids)} trips")
+    for tripA, tripB in valid_arcs:
+        turn_stop = typical_monday_trip_schedule[tripA][1]
+        layover = typical_monday_trip_schedule[tripB][2] - typical_monday_trip_schedule[tripA][3]
+        print(f"{tripA} -> {tripB}   at stop {turn_stop:>3}   {layover // 60:>4} min layover")
