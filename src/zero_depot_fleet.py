@@ -77,19 +77,37 @@ for t in typical_monday_trip_ids_str:
     if t not in arc_arrivals:
         block, current = [t], t
         while current in arc_departures:
-            block.append(current)
             current = arc_departures[current]
+            block.append(current)
         blocks.append(block)
 
 blocks_dict = {i+1: blocks[i] for i in range(len(blocks))}
 
+# No trainset can perform the same trip twice in a row.
+for _, block in blocks_dict.items():
+    assert(block[i] != block[i+1] for i in range(0, len(block) - 1))
+
+# The paths partition the trips: every trip is served exactly once, by exactly one block.
+assert(sum(len(block) for block in blocks) == len(typical_monday_trip_ids))
+
+
+# Pretty-printing blocks. Used in __main__.
+def pretty_print_blocks(boolprint: bool):
+    if boolprint:
+        # Pretty-prints the blocks. 
+        for block_num, block in blocks_dict.items():
+            print(f"Block {block_num} " if block_num >= 10 else f"Block 0{block_num} ", end="")
+            block_length = len(block)
+            print(f"({block_length} total trips): ", end="")
+            for idx, trip in enumerate(blocks_dict[block_num]):
+                if idx < block_length -1:
+                    print(f"{trip} -> ", end="")
+                else:
+                    print(trip)
+
+
 if __name__ == "__main__":
-    # Pretty-prints the blocks.
-    for block_num, block in blocks_dict.items():
-        print(f"Block {block_num}: " if block_num >= 10 else f"Block 0{block_num}: ", end="")
-        block_length = len(block)
-        for idx, trip in enumerate(blocks_dict[block_num]):
-            if idx < block_length -1:
-                print(f"{trip} -> ", end="")
-            else:
-                print(trip)
+    # Pretty-prints the blocks. To display trips, set boolprint to True.
+    pretty_print_blocks(boolprint=True)
+    print(f"Minimum fleet size: {fleet_size} trainsets over {len(blocks_dict)} blocks.")
+    # Block length statistics and the bar chart live in zero_depot_fleet_visualization.
