@@ -45,6 +45,73 @@ single knob controlling how conservative the result is; raising it can only
 remove chaining opportunities, never create them, so the fleet count moves
 monotonically with it.
 
+### Are the blocks operable?
+
+`zero_depot_fleet.py` prints where each block starts, where it ends, and its
+**span** — first departure to last arrival. Three things stand out.
+
+**The day balances.** The multiset of origins is exactly the multiset of
+termini: 12 blocks start at San Bernardino and 12 end there, 6 and 6 at LAUS,
+and so on across all twelve stations involved. Nothing needs repositioning
+overnight for the schedule to repeat, so 38 sets is a steady state rather than a
+one-day trick — and nothing in the model asked for it, it falls out of the
+matching. It
+also means the blocks chain into **rotations**: seven return to their own origin
+(two via triangles rather than out-and-backs, which is why they carry an odd
+number of trips), and the other 31 decompose into cycles — eight two-day pairs,
+one three-day, one four-day, one eight-day. The fleet is 18 pools, not 38
+independent duties, though only the two-day pairs are forced; the longer cycles
+are one valid decomposition among several. Rotation length is a cost in itself:
+the eight-day loop runs Perris → Riverside → Ventura → San Bernardino →
+Moorpark → LAUS → Chatsworth → Redlands, collecting the three stations that
+appear exactly once in the schedule and so cannot pair off with anything.
+
+**Most endpoints are real stabling points.** Metrolink overhauls equipment at
+the [Central Maintenance Facility](https://metrolinktrains.com/community-main/cmf/)
+beside LAUS and at the Eastern Maintenance Facility in Colton, minutes from San
+Bernardino - Downtown, and stables sets overnight at Lancaster, East Ventura,
+Moorpark, Riverside, Perris Valley, and Stuart Mesa north of Oceanside. That
+covers both ends of 31 of the 38 blocks. The rest begin or end at Chatsworth,
+Vista Canyon, or one of the two Redlands stations — none a documented storage
+location — so those sets need a deadhead the model does not price.
+
+**The long blocks are the questionable ones.** Spans run 3:43 to 19:21 (median
+14:18), and fleet-wide the sets are in revenue service for 242 of 514
+block-hours, or 47%. That idleness is normal for peak-heavy commuter rail and is
+exactly what buys the low fleet count. But five blocks span 16 hours or more,
+and what constrains them is the gap to whatever the set does next in its
+rotation — not 24 hours minus the span. The three tightest:
+
+| Block | Span | Endpoints | Next duty | Overnight |
+| --- | --- | --- | --- | --- |
+| 30 | 19:21 | Redlands - University → San Bernardino | blk 33 | 6:13 |
+| 29 | 18:50 | San Bernardino → San Bernardino | itself | 5:10 |
+| 33 | 17:18 | San Bernardino → Redlands - University | blk 30 | 5:08 |
+
+[49 CFR 238.303](https://www.ecfr.gov/current/title-49/subtitle-B/chapter-II/part-238/subpart-D/section-238.303)
+requires an exterior mechanical inspection once each calendar day the equipment
+is in service, and fueling, cleaning, and brake tests want the same window. The
+binding case is the tightest handoff rather than the longest block: Block 33
+arrives at Redlands - University at 23:00 and Block 30 leaves at 04:08, giving
+5h08m at a station with no facility. Thin but not disqualifying — the inspection
+is per calendar day, not a rolling 24 hours. The sharper constraint is that the
+outer layovers are storage tracks with no fueling, so a set stabled at Lancaster
+or Perris is on a multi-day cycle back to CMF or EMF that a single-day model
+cannot see.
+
+Two caveats outweigh all of this. The feed files the Redlands **Arrow** trips
+under the San Bernardino Line rather than a route of their own, so nothing marks
+them as a separate fleet: all 48 land in blocks that also contain
+locomotive-hauled trips, and not one of those 13 blocks is operable by a single
+type of equipment. Arrow runs DMUs, so those blocks are arithmetic, not
+schedules. And none of this leaves the typical weekday — Saturday and Sunday
+carry 92 trips each against 178, which `services_active_on` in
+[src/data_collection.py](src/data_collection.py) cannot even evaluate, since it
+indexes `calendar.txt` by a five-element weekday list; the 14 dates in
+`calendar_dates.txt` that change service are likewise never examined. A real
+fleet is sized for the busiest day of the week, holidays and special events
+included.
+
 ## Layout
 
 ```
@@ -58,7 +125,10 @@ metrolink/
 │   ├── typical_monday_trips.py   Reduces each typical-Monday trip to
 │   │                             (departure stop, arrival stop, departure time, arrival time)
 │   ├── preformulation.py         valid_pair() — the chaining rule; builds the arc set of the DAG
-│   ├── zero_depot_fleet.py       Builds and solves the min-path-cover LP; reports the fleet size
+│   ├── zero_depot_fleet.py       Builds and solves the min-path-cover LP; reports the fleet
+│   │                             size, the blocks, and their origins/termini/spans
+│   ├── zero_depot_fleet_visualization.py
+│   │                             Block-length statistics and bar chart
 │   ├── fleet_min-pulp.sol        CBC's solution to that LP, kept for inspection
 │   └── conftest.py               Puts src/ on sys.path for the test suite
 ├── tests/
@@ -97,9 +167,8 @@ pip install -r requirements.txt
 | [PuLP](https://github.com/coin-or/pulp) | modelling the LP and driving the solver |
 | [pytest](https://pytest.org/) | the test suite |
 
-PuLP ships with the [CBC](https://github.com/coin-or/Cbc) mixed-integer solver,
-which is what actually solves the LP here — no separate solver install is
-needed. NumPy comes along as a pandas dependency.
+PuLP ships with the [CBC](https://github.com/coin-or/Cbc) solver that actually
+runs the LP, so no separate solver install is needed.
 
 ## Credits
 

@@ -1,5 +1,5 @@
 from preformulation import valid_arcs
-from typical_monday_trips import typical_monday_trip_ids, typical_monday_trip_schedule
+from typical_monday_trips import typical_monday_trip_ids, typical_monday_trip_schedule, stops
 import pulp
 
 prob = pulp.LpProblem("fleet_min", pulp.LpMaximize)
@@ -85,11 +85,36 @@ blocks_dict = {i+1: blocks[i] for i in range(len(blocks))}
 
 # No trainset can perform the same trip twice in a row.
 for _, block in blocks_dict.items():
-    assert(block[i] != block[i+1] for i in range(0, len(block) - 1))
+    for i in range(0, len(block) - 1):
+        assert(block[i] != block[i+1])
 
 # The paths partition the trips: every trip is served exactly once, by exactly one block.
 assert(sum(len(block) for block in blocks) == len(typical_monday_trip_ids))
 
+# Turns an integer number of seconds into HH:MM:SS as a string.
+def str_second_time(time: int) -> str:
+    minutes, seconds = divmod(time, 60)
+    hours, minutes = divmod(minutes, 60)
+
+    hours, minutes, seconds = list(map(lambda x: str(x) if x >= 10 else '0'+str(x), [hours, minutes, seconds]))
+    return f"{hours}:{minutes}:{seconds}"
+
+
+# At what station does each block originate and terminate? How long is each block?
+# block_origin_terminus is a dictionary, with pairs block_id: block info. The block info
+# is stored as a SINGLE string containining origin/terminus stations, start/end times, and 
+# total block span. Further discussion is found in the README file.
+block_origin_terminus = {}
+for block_num, block in blocks_dict.items():
+    first_trip, last_trip = int(block[0]), int(block[-1])
+    origin, _, start, _ = typical_monday_trip_schedule[first_trip]
+    _, terminus, _, end = typical_monday_trip_schedule[last_trip]
+    # Origin/terminus names, as opposed to stop_id's.
+    origin = "ORIGIN: " + stops.loc[ stops.stop_id == origin, "stop_name"].values[0]
+    terminus = "TERMINUS: " + stops.loc[ stops.stop_id == terminus, "stop_name"].values[0]
+    # Reformat times as strings.
+    start, end, span = "START: " + str_second_time(start), "END: " + str_second_time(end), "SPAN: " + str_second_time(end-start)
+    block_origin_terminus[block_num] = ', '.join([origin, terminus, start, end, span])
 
 # Pretty-printing blocks. Used in __main__.
 def pretty_print_blocks(boolprint: bool):
@@ -108,6 +133,9 @@ def pretty_print_blocks(boolprint: bool):
 
 if __name__ == "__main__":
     # Pretty-prints the blocks. To display trips, set boolprint to True.
-    pretty_print_blocks(boolprint=True)
+    pretty_print_blocks(boolprint=False)
     print(f"Minimum fleet size: {fleet_size} trainsets over {len(blocks_dict)} blocks.")
     # Block length statistics and the bar chart live in zero_depot_fleet_visualization.
+    for block_id in sorted(block_origin_terminus.keys()):
+        print(f"Block {block_id} " if block_id >= 10 else f"Block 0{block_id} ", end="")
+        print(f"{block_origin_terminus[block_id]}")

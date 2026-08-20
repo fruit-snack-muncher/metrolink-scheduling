@@ -58,5 +58,3 @@ if __name__ == "__main__":
     print(f"{len(typical_monday_trip_schedule)} trips on the typical Monday")
     for trip_id, (dep_stop, arr_stop, dep_time, arr_time) in sorted(typical_monday_trip_schedule.items()):
         print(f"{trip_id}  stop {dep_stop:>3} -> {arr_stop:>3}   {hhmmss(dep_time)} -> {hhmmss(arr_time)}")
-
-
