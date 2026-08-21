@@ -118,12 +118,14 @@ def plot_block_lengths(blocks_dict: dict, path: Path,
 
     bars = ax.bar(block_nums, lengths, color=colors, zorder=3)
 
-    # Median reference line, drawn under the bars and labelled in the margin.
+    # Mean, median, and a +/-1 SD band, all drawn under the bars. The two lines
+    # land within a few tenths of each other whenever the distribution is near
+    # symmetric, which is too close for separate margin labels, so the legend
+    # carries the values instead.
+    mean, sd = stats["mean"], stats["stdev"]
+    ax.axhspan(mean - sd, mean + sd, color=TYPICAL, alpha=0.10, zorder=1)
     ax.axhline(stats["median"], color=MUTED, linewidth=1, linestyle=(0, (4, 3)), zorder=2)
-    ax.annotate(f"median {stats['median']:.1f}",
-                xy=(block_nums[-1] + 0.6, stats["median"]), xycoords="data",
-                va="center", ha="left", fontsize=8, color=INK_SECONDARY,
-                annotation_clip=False)
+    ax.axhline(mean, color=INK_SECONDARY, linewidth=1, zorder=2)
 
     # Only the extremes are directly labelled; the axis carries everything else.
     for bar, block_num, length in zip(bars, block_nums, lengths):
@@ -158,10 +160,16 @@ def plot_block_lengths(blocks_dict: dict, path: Path,
     ax.spines["bottom"].set_linewidth(1)
 
     handles = [plt.Rectangle((0, 0), 1, 1, color=TYPICAL),
-               plt.Rectangle((0, 0), 1, 1, color=OUTLIER)]
+               plt.Rectangle((0, 0), 1, 1, color=OUTLIER),
+               plt.Line2D([], [], color=INK_SECONDARY, linewidth=1),
+               plt.Line2D([], [], color=MUTED, linewidth=1, linestyle=(0, (4, 3))),
+               plt.Rectangle((0, 0), 1, 1, color=TYPICAL, alpha=0.10)]
     legend = ax.legend(handles,
                        ["Block",
-                        f"Outlier (outside {stats['lower_fence']:.1f}-{stats['upper_fence']:.1f} trips)"],
+                        f"Outlier (outside {stats['lower_fence']:.1f}-{stats['upper_fence']:.1f} trips)",
+                        f"Mean {mean:.2f}",
+                        f"Median {stats['median']:.1f}",
+                        f"+/-1 SD ({sd:.2f})"],
                        frameon=False, fontsize=8, loc="upper left", handlelength=1.2,
                        handleheight=1.2, labelcolor=INK_SECONDARY)
     legend.set_zorder(4)

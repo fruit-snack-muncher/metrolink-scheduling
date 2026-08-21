@@ -128,12 +128,56 @@ def valid_pair_deadheading(tripA, tripB, turnaround=TURNAROUND):
 valid_arcs_deadheading = product(typical_monday_trip_ids, repeat=2)
 valid_arcs_deadheading = [arc for arc in valid_arcs_deadheading if valid_pair_deadheading(arc[0], arc[1])]
 
+
+# Prices an empty run against the trainset it saves: the marginal cost of a deadhead
+# train-hour (~$665 - fuel at 3.00 gal/train-mile, plus wear and part of the crew's
+# time) over the marginal cost of a trainset-day (~$4,030 - a six-unit consist over an
+# FTA 39-year life, plus crew, servicing and idle fuel; revenue fuel does not belong
+# here, as an extra set adds no revenue miles). Derivation, sources and the assumptions
+# that are NOT sourced: trainset_value_hours_estimation.md at the repo root.
+#
+# The reciprocal is the break-even deadhead, ~5.9 h. Nothing here is that long - the
+# worst arc is 4.32 h - so the penalty only orders solutions that chain equally many
+# trips; above 0.232 it would start forbidding arcs outright.
+#
+# Fleet size is insensitive to the rate: anything from ~1e-7 to 0.37 gives the same 31
+# trainsets over the same 5 deadheads, totalling 6.15 h. What guarantees we stayed
+# below 0.37 is assert(fleet_size == 31) in zero_depot_deadheading, not the rate.
+TRAINSET_DAYS_PER_DEADHEAD_HOUR = 0.17
+
+deadheading_weights = []
+for tripA, tripB in valid_arcs_deadheading:
+    _, arrival, _, _ = typical_monday_trip_schedule[tripA]
+    departure, _, _, _ = typical_monday_trip_schedule[tripB]
+    if arrival == departure:
+        deadheading_weights.append(0)
+    else:
+        deadheading_weights.append( typical_monday_deadhead_times[frozenset([arrival, departure])]
+                                    / 3600 * TRAINSET_DAYS_PER_DEADHEAD_HOUR )
+
+# The linear program maximizes the sum of w_{ij} x_{ij} over arcs i->j, with x_{ij} in
+# {0, 1}. So far we hold the cost; w_{ij} is one trainset saved less that cost, and the
+# subtraction below takes the difference. We subtract each of the above weights from 1
+# to get our final list of weights. Same-station turns weigh exactly 1; the worst arc on
+# this network is 4.32 h, so the weights span [0.265, 1] and none of them is negative -
+# the penalty orders the solutions rather than forbidding any arc.
+
+deadheading_weights = list(map(lambda x: 1-x, deadheading_weights))
+
+
+# A list, not the bare zip: the consumers iterate this more than once, and a
+# zip would be silently empty on the second pass.
+weights_and_arcs = list(zip(deadheading_weights, valid_arcs_deadheading))
+
 if __name__ == "__main__":
     # One line per arc, with the station the turn happens at and how long the
     # set sits there, which is what makes a chaining worth eyeballing.
-    
-    #print(f"{len(valid_arcs)} valid chainings among {len(typical_monday_trip_ids)} trips")
+    print(f"{len(valid_arcs)} valid chainings among {len(typical_monday_trip_ids)} trips")
     for tripA, tripB in valid_arcs:
         turn_stop = typical_monday_trip_schedule[tripA][1]
         layover = typical_monday_trip_schedule[tripB][2] - typical_monday_trip_schedule[tripA][3]
-        #print(f"{tripA} -> {tripB}   at stop {turn_stop:>3}   {layover // 60:>4} min layover")
+        print(f"{tripA} -> {tripB}   at stop {turn_stop:>3}   {layover // 60:>4} min layover")
+
+    # And the deadheading arc set, which is the one the weights above apply to.
+    print(f"\n{len(valid_arcs_deadheading)} valid chainings with deadheading allowed, "
+          f"at {TRAINSET_DAYS_PER_DEADHEAD_HOUR} trainset-days per deadhead hour")

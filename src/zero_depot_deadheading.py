@@ -3,15 +3,15 @@ Exact same code as zero_depot.py, except the valid arcs have changed to allow de
 Changes the objective slightly, as to penalize long deadheading trips.
 """
 
-from preformulation import typical_monday_deadhead_times, valid_arcs_deadheading
+from preformulation import valid_arcs_deadheading, weights_and_arcs
 from typical_monday_trips import typical_monday_trip_ids, typical_monday_trip_schedule, stops
 import pulp
 
 prob = pulp.LpProblem("fleet_min", pulp.LpMaximize)
 
 typical_monday_trip_ids_str = [str(trip) for trip in typical_monday_trip_ids]
-valid_arc_str = [str(arc) for arc in valid_arcs_deadheading]
-valid_arc_lookup = frozenset(valid_arcs_deadheading)
+valid_arc_str = [str(arc) for _, arc in weights_and_arcs]
+valid_arc_lookup = frozenset([arc for _, arc in weights_and_arcs])
 
 # The relaxation has an integral solution, as the constraint matrix is totally unimodular.
 # Concretely, the constraint matrix can be split into two blocks
@@ -29,25 +29,9 @@ valid_arc_lookup = frozenset(valid_arcs_deadheading)
 # |typical_monday_trip_ids| rows.
 var = pulp.LpVariable.dict("x", valid_arc_str, lowBound=0, cat='Continuous')
 
-# We introduce a weighting system for a chaining of trips, based on the length of the 
-# deadheading move. 
-#
-# ALPHA, BETA are fixed ratios quantifying 
-ALPHA, BETA = CHOOSE CONSTANTS   # 1 move = 0.3 sets;  1 empty hour = 0.075 sets
-                           # => fixed charge equals 4 h of running (crew guarantee)
-                           # => 13.3 empty hours would cost you a trainset
-
-def deadhead_penalty(arc) -> float:
-    """Cost of an arc in trainsets. Zero for same-station turns."""
-    end = typical_monday_trip_schedule[arc[0]][1]
-    start = typical_monday_trip_schedule[arc[1]][0]
-    if end == start:
-        return 0.0
-    hours = typical_monday_deadhead_times[frozenset([end, start])] / 3600
-    return ALPHA + BETA * hours
-
-prob.setObjective(pulp.lpSum((1 - deadhead_penalty(arc)) * var[str(arc)]
-                             for arc in valid_arcs_deadheading))
+# We apply the modified objective function, weighting each variable by its weight.
+prob.setObjective(pulp.lpSum(weight* var[str(arc)]
+                             for weight, arc in weights_and_arcs))
 
 
 # For every string trip_id, find all valid trips that can be chained before/after
@@ -57,9 +41,6 @@ departures, arrivals = {t: [] for t in typical_monday_trip_ids_str}, {t: [] for 
 for arc in valid_arc_lookup:
     departures[str(arc[0])].append( var[str(arc)] )
     arrivals[str(arc[1])].append( var[str(arc)] )
-
-# Maximize the number of chains -> minimize the size of the fleet.
-prob.setObjective(pulp.lpSum(var.values()))
 
 # There can be at most one arc going into a trip, and at most one arc going out of a trip.
 # This behavior is captured by non-negativity of the variables and their integrality, which
@@ -76,11 +57,13 @@ for t in typical_monday_trip_ids_str:
 prob.solve(pulp.PULP_CBC_CMD(msg=0, keepFiles=False))
 assert(pulp.LpStatus[prob.status] == "Optimal")
 
-# We maximized the total number of chainings. The  minimal fleet size should be the number 
-# of total trips minus the optimal number of chainings.
-fleet_size = len(typical_monday_trip_ids) - round(pulp.value(prob.objective))
+# Every arc used chains two trips, so it removes exactly one trainset from the fleet.
+# Note we count the arcs rather than reading pulp.value(prob.objective): the objective
+# is the count only when every weight is 1, which the deadheading penalty breaks.
+chainings = sum(1 for _, arc in weights_and_arcs if var[str(arc)].varValue >= 0.5)
+fleet_size = len(typical_monday_trip_ids) - chainings
 
-# fleet_size was found to be 35 total trains, excluding DMU's running on the Arrow line.
+# fleet_size was found to be 31 total trains, excluding DMU's running on the Arrow line.
 assert(fleet_size == 31)
 
 # Finding the actual blocks for this solution. We know the DAG formed by taking trips
@@ -93,7 +76,7 @@ assert(fleet_size == 31)
 # valid_arcs represented as a dictionary, where key: value represents an arc key -> value.
 # Only catches the arcs reported by the solver. Uses >= 0.5 to avoid any FPA error.
 # Must be sensitive to the actual solution. 
-arc_departures = {str(a): str(b) for a,b in valid_arcs_deadheading 
+arc_departures = {str(a): str(b) for (weight, (a,b)) in weights_and_arcs 
                   if var[f"({a}, {b})"].varValue >= 0.5}
 arc_arrivals = set( arc_departures.values() ) # fast lookup
 
