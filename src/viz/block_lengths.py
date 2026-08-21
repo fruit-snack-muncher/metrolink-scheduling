@@ -1,34 +1,42 @@
-"""Block length distribution for the zero-depot minimum fleet.
+"""Block length distribution: statistics and bar chart.
 
 Each block is one trainset's whole Monday, so its length is the number of
-revenue trips that trainset turns. A lopsided distribution - a few very long
-blocks carrying the day while most trainsets turn one or two trips - is a sign
-the zero-depot relaxation is buying its 38 by chaining trips a real operator
-could not chain back-to-back.
+revenue trips that trainset turns. The shape of the distribution is what says
+whether a fleet count is being bought honestly - work spread evenly across the
+sets - or by a few very long blocks carrying the day while most trainsets turn
+one or two trips.
 
-The blocks themselves come from zero_depot_fleet; importing it runs the LP solve
-once, and nothing here re-derives them.
+Nothing here solves anything. Every function takes a `blocks_dict` of
+`block number -> list of trip ids`, exactly as the model modules expose it, so
+this module is shared by every fleet variant rather than tied to one. The
+callers are the sibling `*_viz.py` scripts.
 """
 
-from zero_depot_fleet import blocks_dict
 from pathlib import Path
 import statistics
 import matplotlib
 matplotlib.use("Agg")  # No GUI; we only ever write a file.
 import matplotlib.pyplot as plt
 
-# Trips per block, keyed by block number.
-block_lengths = {block_num: len(block) for block_num, block in blocks_dict.items()}
+# Charts land in figures/ at the repository root, located relative to this
+# file rather than the working directory, so the scripts run from anywhere.
+FIGURES = Path(__file__).resolve().parent.parent.parent / "figures"
 
 
-def block_length_stats() -> dict:
+def block_lengths(blocks_dict: dict) -> dict:
+    """Trips per block, keyed by block number."""
+    return {block_num: len(block) for block_num, block in blocks_dict.items()}
+
+
+def block_length_stats(blocks_dict: dict) -> dict:
     """Summary statistics for the per-block trip counts.
 
     Outliers are the standard Tukey rule: a block is an outlier when its length
     falls outside [Q1 - 1.5*IQR, Q3 + 1.5*IQR]. Quartiles use the inclusive
     method so Q1/Q3 stay comparable to the ones numpy and R's type-7 report.
     """
-    lengths = sorted(block_lengths.values())
+    lengths_by_block = block_lengths(blocks_dict)
+    lengths = sorted(lengths_by_block.values())
     q1, median, q3 = statistics.quantiles(lengths, n=4, method="inclusive")
     iqr = q3 - q1
     lower_fence, upper_fence = q1 - 1.5 * iqr, q3 + 1.5 * iqr
@@ -48,18 +56,23 @@ def block_length_stats() -> dict:
         "lower_fence": lower_fence,
         "upper_fence": upper_fence,
         # Block number -> length, for every block outside the fences.
-        "outliers": {block_num: length for block_num, length in block_lengths.items()
+        "outliers": {block_num: length for block_num, length in lengths_by_block.items()
                      if length < lower_fence or length > upper_fence},
     }
 
 
-def print_block_length_stats() -> None:
-    """Prints the block length distribution and its summary statistics."""
-    stats = block_length_stats()
+def print_block_length_stats(blocks_dict: dict, heading: str = "Block lengths") -> None:
+    """Prints the block length distribution and its summary statistics.
 
-    print(f"Block lengths ({stats['n_blocks']} blocks, {stats['n_trips']} trips)")
+    `heading` names the fleet variant; the block and trip counts are appended
+    to it.
+    """
+    lengths_by_block = block_lengths(blocks_dict)
+    stats = block_length_stats(blocks_dict)
+
+    print(f"{heading} ({stats['n_blocks']} blocks, {stats['n_trips']} trips)")
     print()
-    for block_num, length in block_lengths.items():
+    for block_num, length in lengths_by_block.items():
         flag = " <- outlier" if block_num in stats["outliers"] else ""
         print(f"  Block {block_num:>2}  {length:>2} trips{flag}")
 
@@ -80,16 +93,23 @@ def print_block_length_stats() -> None:
         print(f"  outliers       none")
 
 
-def plot_block_lengths(path: Path = Path(__file__).parent.parent / "figures" / "block_lengths.png") -> Path:
-    """Saves a bar chart of trip count by block number. Returns the path written."""
-    stats = block_length_stats()
+def plot_block_lengths(blocks_dict: dict, path: Path,
+                       title: str = "Trips per block",
+                       subtitle: str = "Typical Monday") -> Path:
+    """Saves a bar chart of trip count by block number. Returns the path written.
+
+    `subtitle` describes the fleet variant; the block and trip counts are
+    appended to it.
+    """
+    lengths_by_block = block_lengths(blocks_dict)
+    stats = block_length_stats(blocks_dict)
 
     SURFACE, INK, INK_SECONDARY, MUTED = "#fcfcfb", "#0b0b0b", "#52514e", "#898781"
     GRID, BASELINE = "#e1e0d9", "#c3c2b7"
     TYPICAL, OUTLIER = "#2a78d6", "#d03b3b"  # categorical slot 1; status "critical"
 
-    block_nums = list(block_lengths.keys())
-    lengths = [block_lengths[n] for n in block_nums]
+    block_nums = list(lengths_by_block.keys())
+    lengths = [lengths_by_block[n] for n in block_nums]
     colors = [OUTLIER if n in stats["outliers"] else TYPICAL for n in block_nums]
 
     fig, ax = plt.subplots(figsize=(12, 5.5), dpi=150)
@@ -112,8 +132,8 @@ def plot_block_lengths(path: Path = Path(__file__).parent.parent / "figures" / "
                         xytext=(0, 4), textcoords="offset points",
                         ha="center", va="bottom", fontsize=8, color=INK_SECONDARY)
 
-    ax.set_title("Trips per block", fontsize=13, color=INK, loc="left", pad=18, weight="bold")
-    ax.annotate("Zero-depot minimum fleet, typical Monday - "
+    ax.set_title(title, fontsize=13, color=INK, loc="left", pad=18, weight="bold")
+    ax.annotate(f"{subtitle} - "
                 f"{stats['n_blocks']} blocks covering {stats['n_trips']} trips",
                 xy=(0, 1), xycoords="axes fraction", xytext=(0, 10),
                 textcoords="offset points", fontsize=9, color=INK_SECONDARY)
@@ -161,9 +181,3 @@ def plot_block_lengths(path: Path = Path(__file__).parent.parent / "figures" / "
     fig.savefig(path, facecolor=SURFACE, bbox_inches="tight")
     plt.close(fig)
     return path
-
-
-if __name__ == "__main__":
-    print_block_length_stats()
-    print()
-    print(f"Wrote bar chart to {plot_block_lengths()}")

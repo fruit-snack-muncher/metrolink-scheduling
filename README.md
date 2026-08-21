@@ -40,9 +40,12 @@ makes it totally unimodular, so the relaxation is guaranteed to land on an
 integral optimum anyway and CBC gets an easier problem to solve.
 
 The answer, for a typical Monday under a 20-minute turnaround and no
-deadheading, is **35 trainsets** for 132 trips. There is a very slight discrepancy
-between Metrolink's minimum total locomotives to run a normal weekday schedule,
-which was **36 trainsets** (https://www.trains.com/trn/news-reviews/news-wire/locomotive-issues-lead-to-metrolink-train-cancellations/).
+deadheading, is **35 trainsets** for 132 trips. Allowing deadheading, the number
+drops to **31 trainsets** for those same trips.
+
+In the non-deadheading case, there is a very slight discrepancy between Metrolink's 
+minimum total locomotives to run a normal weekday schedule, which was **36 trainsets**.
+(https://www.trains.com/trn/news-reviews/news-wire/locomotive-issues-lead-to-metrolink-train-cancellations/).
 
 Excluding the Arrow trips is what moved that number: with them in, the same
 model returned 38 trainsets, and the longest block ran 11 trips. Without them
@@ -53,18 +56,20 @@ locomotive-hauled work that no DMU could ever cover.
 
 ### Modelling assumptions
 
-The count is a lower bound on real equipment needs, not an operating plan.
-Deadheading (repositioning an empty set) is not modelled, so a set can only pick
-up a trip where it last stopped. Consist size, maintenance windows, crew rules,
-and yard capacity are all out of scope, and every set is treated as
-interchangeable. `TURNAROUND` in [src/preformulation.py](src/preformulation.py) is the
-single knob controlling how conservative the result is; raising it can only
-remove chaining opportunities, never create them, so the fleet count moves
-monotonically with it.
+The count is a lower bound on real equipment needs, not an operating plan. In
+the base model deadheading (repositioning an empty set) is not modelled, so a
+set can only pick up a trip where it last stopped; [the deadheading
+variant](#what-deadheading-buys) relaxes exactly that. Consist size, maintenance
+windows, crew rules, and yard capacity are all out of scope, and every set is
+treated as interchangeable. `TURNAROUND` in
+[src/preformulation.py](src/preformulation.py) is the single knob controlling
+how conservative the result is; raising it can only remove chaining
+opportunities, never create them, so the fleet count moves monotonically with
+it.
 
 ### Are the blocks operable?
 
-`zero_depot_fleet.py` prints where each block starts, where it ends, and its
+`zero_depot.py` prints where each block starts, where it ends, and its
 **span** — first departure to last arrival. Three things stand out.
 
 **The day balances.** The multiset of origins is exactly the multiset of
@@ -134,6 +139,94 @@ picture, though — trips 309 and 342 are locomotive-hauled San Bernardino Line
 runs extended to Redlands - Downtown, which is why one block still starts there
 and one still ends there.
 
+### What deadheading buys
+
+The zero-depot result assumes a set can only pick up a trip where it last
+stopped. `preformulation.py` also builds a second arc set that drops that
+restriction. A chaining is legal when the gap between trip times covers a
+turnaround, the empty move, and another turnaround. Only stations actually 
+served that Monday are in the graph, so no set ever deadheads down a line 
+the schedule does not use.
+
+That triples the arc set, from **2,115 chainings to 5,316**, and
+`zero_depot_deadheading.py` solves the same LP over it. The fleet falls from
+**35 to 31** — four trainsets, 11%. It is the same minimum-path-cover LP with a
+looser feasibility rule, so 31 is a lower bound on 35 by construction; the
+question is what it costs.
+
+**The blocks get uniform.** `viz/zero_depot_deadheading_viz.py` reports the same
+distribution the base model does, and the contrast is sharper than the fleet
+count:
+
+| | No deadheading | Deadheading |
+| --- | --- | --- |
+| Blocks | 35 | 31 |
+| Trips per block | 2 – 7 | 3 – 6 |
+| Mean / median | 3.77 / 4.0 | 4.26 / 4.0 |
+| Stdev | 1.24 | 0.73 |
+| IQR (Q1–Q3) | 2.0 (3–5) | 1.0 (4–5) |
+| Span | 3:43 – 18:18 (median 13:18) | 10:45 – 18:31 (median 14:02) |
+| Revenue share of block-hours | 225 / 445 h = 51% | 225 / 433 h = 52% |
+
+Both distributions are outlier-free under Tukey, but the deadheading one is
+half as dispersed — the fences close from [0, 8] to [2.5, 6.5]. The four sets
+come out of the *short* end of the distribution, not the long one: the base
+model's five two-trip blocks are gone, and the shortest duty in the day goes
+from 3h43m to 10h45m. Deadheading does not lengthen the day's longest work, it
+deletes the stub duties by giving them somewhere to go.
+
+**Utilisation barely moves.** Revenue hours are fixed at 225 by the schedule, so
+spreading them over 31 sets instead of 35 only lifts the revenue share of
+block-time from 51% to 52%. The saving is real, but it is a saving in *sets*,
+not in idleness — the same fleet-wide slack is simply cut into fewer pieces.
+
+**Empty mileage is the bill.** The solution uses 101 turns, of which **39 are
+deadheads** and 62 are ordinary same-station turns. Those 39 moves total
+**61.3 hours of empty running**, averaging 94 minutes each, and each one also
+burns two 20-minute turnarounds on top. Roughly 15 hours of empty running per
+trainset saved, before crew, fuel, or a dispatcher's willingness to path it.
+The extremes are not marginal repositionings:
+
+| Move | Empty running | Gap available |
+| --- | --- | --- |
+| Lancaster → Moorpark | 2:48 | 5:20 |
+| Vista Canyon → Riverside - Downtown | 2:37 | 4:04 |
+| Moorpark → Laguna Niguel / Mission Viejo | 2:35 | 4:43 |
+| Riverside - Downtown → Chatsworth | 2:17 | 3:30 |
+
+A Lancaster-to-Moorpark light move crosses the whole north end of the system on
+BNSF and UP trackage to save one set, and the model prices it purely in minutes.
+
+**The day stops balancing.** This is the finding that most undercuts the 31.
+Under the base model the multiset of block origins equalled the multiset of
+termini at every one of the eleven endpoint stations, so 35 sets was a genuine
+steady state that repeats the next morning untouched. With deadheading it does
+not: LAUS ends the day with **7 blocks terminating against 3 originating**,
+while Riverside is short 2, and Perris and Laguna Niguel short 1 each. Four sets
+finish out of position — exactly as many as the model saved — and putting them
+back is four more overnight deadheads the objective never sees. The LP maximises
+chainings inside one day, so it happily spends tomorrow's position to buy today's
+match.
+
+**It does fix the stranded endpoints, and create a new one.** The base model
+left five blocks starting or ending at Chatsworth, Vista Canyon, or Redlands -
+Downtown, none of them documented stabling. Chatsworth and Vista Canyon stop
+being endpoints entirely here — deadheads absorb them mid-block (L.A. → Vista
+Canyon, Vista Canyon → Riverside, Riverside → Chatsworth, Chatsworth → L.A.),
+which is precisely the repositioning the base model could not price and flagged
+as missing. Redlands survives, since trips 309 and 342 genuinely start and end
+there. But Laguna Niguel / Mission Viejo takes their place: it is a mid-line
+Orange County station with no storage, it now originates a block, and seven of
+the 39 deadheads route through it. The model has traded three implausible
+endpoints for one implausible hub.
+
+So 31 is the right answer to the question as posed and the wrong number to plan
+against. Metrolink's own weekday floor was 36. The honest reading is that the
+gap between 35 and 31 measures how much of the fleet exists to avoid empty
+mileage rather than to carry passengers — and that the four sets are only
+recoverable by an operator willing to run 61 hours of light engine moves a day
+and reposition four more sets overnight.
+
 ## Layout
 
 ```
@@ -148,13 +241,20 @@ metrolink/
 │   │                             (trip_short_name 38xx) and writes the typical Monday
 │   ├── typical_monday_trips.py   Reduces each typical-Monday trip to
 │   │                             (departure stop, arrival stop, departure time, arrival time)
-│   ├── preformulation.py         valid_pair() — the chaining rule; builds the arc set of the DAG
-│   ├── zero_depot_fleet.py       Builds and solves the min-path-cover LP; reports the fleet
+│   ├── preformulation.py         valid_pair() — the chaining rule; builds the arc set of the DAG.
+│   │                             Also valid_pair_deadheading(), which prices an empty move as the
+│   │                             shortest path over mean station-to-station running times
+│   ├── zero_depot.py             Builds and solves the min-path-cover LP; reports the fleet
 │   │                             size, the blocks, and their origins/termini/spans
-│   ├── zero_depot_fleet_visualization.py
-│   │                             Block-length statistics and bar chart
+│   ├── zero_depot_deadheading.py The same LP over the deadheading arc set (asserts 31)
 │   ├── fleet_min-pulp.sol        CBC's solution to that LP, kept for inspection
-│   └── conftest.py               Puts src/ on sys.path for the test suite
+│   ├── conftest.py               Puts src/ on sys.path for the test suite
+│   └── viz/                      Plotting; imports the models, never re-derives them
+│       ├── block_lengths.py        Block-length statistics and bar chart, over any
+│       │                           blocks_dict — shared by both variants below
+│       ├── zero_depot_viz.py       Applies them to the zero-depot fleet
+│       └── zero_depot_deadheading_viz.py  ... and to the deadheading fleet
+├── figures/                      Charts written by src/viz/
 ├── tests/
 │   └── test_valid_pair.py        Synthetic boundary cases, exhaustive properties over the real
 │                                 schedule, and named real-world pairs
@@ -171,7 +271,10 @@ is a plain script.
 python src/data_collection.py      # writes gtfs_cleaned/typical_monday.txt
 python src/typical_monday_trips.py # prints the per-trip schedule
 python src/preformulation.py       # prints the valid arcs
-python src/zero_depot_fleet.py     # solves the LP (asserts the fleet size is 35)
+python src/zero_depot.py           # solves the LP (asserts the fleet size is 35)
+python src/viz/zero_depot_viz.py   # block-length stats + figures/block_lengths.png
+python src/zero_depot_deadheading.py          # the same LP with deadheading (asserts 31)
+python src/viz/zero_depot_deadheading_viz.py  # figures/block_lengths_deadheading.png
 pytest                             # 30 tests
 ```
 
@@ -189,6 +292,8 @@ pip install -r requirements.txt
 | --- | --- |
 | [pandas](https://pandas.pydata.org/) | reading and filtering the GTFS `.txt` tables |
 | [PuLP](https://github.com/coin-or/pulp) | modelling the LP and driving the solver |
+| [networkx](https://networkx.org/) | shortest-path deadhead times over the station graph |
+| [matplotlib](https://matplotlib.org/) | the block-length charts in `figures/` |
 | [pytest](https://pytest.org/) | the test suite |
 
 PuLP ships with the [CBC](https://github.com/coin-or/Cbc) solver that actually

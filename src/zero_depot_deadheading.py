@@ -1,17 +1,17 @@
 """
-Formulating and solving the fleet-minimization problem. Does not allow deadheading.
-Includes finding the blocks formed by the solution to the fleet-minimization.
+Exact same code as zero_depot.py, except the valid arcs have changed to allow deadheading.
+Changes the objective slightly, as to penalize long deadheading trips.
 """
 
-from preformulation import valid_arcs
+from preformulation import typical_monday_deadhead_times, valid_arcs_deadheading
 from typical_monday_trips import typical_monday_trip_ids, typical_monday_trip_schedule, stops
 import pulp
 
 prob = pulp.LpProblem("fleet_min", pulp.LpMaximize)
 
 typical_monday_trip_ids_str = [str(trip) for trip in typical_monday_trip_ids]
-valid_arc_str = [str(arc) for arc in valid_arcs]
-valid_arc_lookup = frozenset(valid_arcs)
+valid_arc_str = [str(arc) for arc in valid_arcs_deadheading]
+valid_arc_lookup = frozenset(valid_arcs_deadheading)
 
 # The relaxation has an integral solution, as the constraint matrix is totally unimodular.
 # Concretely, the constraint matrix can be split into two blocks
@@ -28,6 +28,27 @@ valid_arc_lookup = frozenset(valid_arcs)
 # exactly one 1 in the first |typical_monday_trip_ids| rows, and exactly one more 1 in the second
 # |typical_monday_trip_ids| rows.
 var = pulp.LpVariable.dict("x", valid_arc_str, lowBound=0, cat='Continuous')
+
+# We introduce a weighting system for a chaining of trips, based on the length of the 
+# deadheading move. 
+#
+# ALPHA, BETA are fixed ratios quantifying 
+ALPHA, BETA = CHOOSE CONSTANTS   # 1 move = 0.3 sets;  1 empty hour = 0.075 sets
+                           # => fixed charge equals 4 h of running (crew guarantee)
+                           # => 13.3 empty hours would cost you a trainset
+
+def deadhead_penalty(arc) -> float:
+    """Cost of an arc in trainsets. Zero for same-station turns."""
+    end = typical_monday_trip_schedule[arc[0]][1]
+    start = typical_monday_trip_schedule[arc[1]][0]
+    if end == start:
+        return 0.0
+    hours = typical_monday_deadhead_times[frozenset([end, start])] / 3600
+    return ALPHA + BETA * hours
+
+prob.setObjective(pulp.lpSum((1 - deadhead_penalty(arc)) * var[str(arc)]
+                             for arc in valid_arcs_deadheading))
+
 
 # For every string trip_id, find all valid trips that can be chained before/after
 # that particular trip. Add the variable corresponding to each chain to two
@@ -60,7 +81,7 @@ assert(pulp.LpStatus[prob.status] == "Optimal")
 fleet_size = len(typical_monday_trip_ids) - round(pulp.value(prob.objective))
 
 # fleet_size was found to be 35 total trains, excluding DMU's running on the Arrow line.
-assert(fleet_size == 35)
+assert(fleet_size == 31)
 
 # Finding the actual blocks for this solution. We know the DAG formed by taking trips
 # as nodes and chains as directed arcs (which is acyclic because no chain can go back
@@ -72,7 +93,7 @@ assert(fleet_size == 35)
 # valid_arcs represented as a dictionary, where key: value represents an arc key -> value.
 # Only catches the arcs reported by the solver. Uses >= 0.5 to avoid any FPA error.
 # Must be sensitive to the actual solution. 
-arc_departures = {str(a): str(b) for a,b in valid_arcs 
+arc_departures = {str(a): str(b) for a,b in valid_arcs_deadheading 
                   if var[f"({a}, {b})"].varValue >= 0.5}
 arc_arrivals = set( arc_departures.values() ) # fast lookup
 

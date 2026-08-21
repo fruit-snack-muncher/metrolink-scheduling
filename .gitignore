@@ -13,7 +13,7 @@ env/
 .ruff_cache/
 
 # Stray CBC/PuLP run artifacts dropped by keepFiles=True into whichever
-# directory zero_depot_fleet.py was invoked from - the repo root or src/.
+# directory zero_depot.py was invoked from - the repo root or src/.
 *-pulp.mps
 *-pulp.sol
 *-pulp.lp
