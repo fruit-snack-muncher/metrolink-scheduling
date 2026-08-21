@@ -54,9 +54,8 @@ assert(pulp.LpStatus[prob.status] == "Optimal")
 # of total trips minus the optimal number of chainings.
 fleet_size = len(typical_monday_trip_ids) - round(pulp.value(prob.objective))
 
-# fleet_size was found to be 38 total trains.
-assert(fleet_size == 38)
-
+# fleet_size was found to be 35 total trains, excluding DMU's running on the Arrow line.
+assert(fleet_size == 35)
 
 # Finding the actual blocks for this solution. We know the DAG formed by taking trips
 # as nodes and chains as directed arcs (which is acyclic because no chain can go back
@@ -133,8 +132,9 @@ def pretty_print_blocks(boolprint: bool):
 
 if __name__ == "__main__":
     # Pretty-prints the blocks. To display trips, set boolprint to True.
-    pretty_print_blocks(boolprint=False)
-    print(f"Minimum fleet size: {fleet_size} trainsets over {len(blocks_dict)} blocks.")
+    pretty_print_blocks(boolprint=True)
+    print("")
+    print(f"Minimum fleet size: {fleet_size} trainsets over {len(blocks_dict)} blocks.", end = '\n')
     # Block length statistics and the bar chart live in zero_depot_fleet_visualization.
     for block_id in sorted(block_origin_terminus.keys()):
         print(f"Block {block_id} " if block_id >= 10 else f"Block 0{block_id} ", end="")

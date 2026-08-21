@@ -1,3 +1,16 @@
+"""
+Re-writes the data for a typical Monday schedule in a format convenient for
+formulating a LP. Every trip is represented as a key in a dictionary, with
+value a tuple (departure stop_id, arrival stop_id, departure time, arrival time).
+Such information is necessary for determining whether trips can chain into
+each other.
+
+Since this relies on typical_monday.txt for trips, we naturally exclude the
+Arrow trips as well. This results in a total 132 trips on a typical Monday, as
+demonstrated in the number of non-label non-empty lines in typical_monday.txt
+(easily verifiable by inspection).
+"""
+
 from pathlib import Path
 
 import pandas as pd
@@ -32,6 +45,8 @@ def typical_schedule_per_trip(trip_id: int) -> None:
 
     trip_stop_times = typical_stops[typical_stops.trip_id == trip_id]
     trips, _ = trip_stop_times.shape
+
+    # Turn a tuple (hours, minutes, seconds) into the total number of seconds as an integer.
     time_eval = lambda x: 3600*x[0] + 60*x[1] + x[2]
 
     departure, arrival = trip_stop_times.iloc[0], trip_stop_times.iloc[trips-1]
@@ -47,6 +62,9 @@ def typical_schedule_per_trip(trip_id: int) -> None:
 
 for trip in typical_monday_trip_ids:
     typical_schedule_per_trip(trip)
+
+# The typical Monday contains 132 total trips.
+assert( len(typical_monday_trip_schedule.keys()) == 132 )
 
 if __name__ == "__main__":
     # One line per trip rather than one dict repr, so the output can be read,

@@ -7,12 +7,22 @@ choosing only the rows corresponding to services active on that day.
 Our first aim is to find such a Dataframe for a typical Monday - i.e. without
 service exceptions. The resulting Dataframe is written as a CSV in .txt format
 in gtfs_cleaned, named "typical_monday.txt".
+
+All Arrow DMU trips are excluded, as they form a distinct minority of trips
+operating on only the San Bernandino line. In particular, the Arrow FLIRT DMU's
+are maintained exclusively out of the Arrow Maintenance Facility in San Bernandino
+(https://www.gosbcta.com/maintenance-facility-construction-contract-for-future-arrow-service-trains/).
+These trips have trip_short_name numbered 38xx (https://metrolinktrains.com/globalassets/schedules/timetables/2026/ml-timetable-012626-arrow.pdf).
 """
 
 from pathlib import Path
 
 import pandas as pd
 from datetime import date
+
+# Arrow FLIRT trip_short_name's.
+
+ARROW_FLIRT = set([str(trip) for trip in range(3800, 3900)])
 
 # Resolve relative to this file, not the working directory, so the reads work
 # on any machine that clones the repo and from any directory the script is run
@@ -50,34 +60,22 @@ def services_active_on(day: date) -> set:
 
     return all_today, active_today
 
+# Filters out all Arrow FLIRT services - trip_short_name of form 38xx.
 def trips_on_day(day):
-    return trips[trips.service_id.isin( services_active_on(day)[1] )]
+    return trips[(trips['service_id'].isin( services_active_on(day)[1] ))
+                 & ~(trips['trip_short_name'].isin(ARROW_FLIRT))]
 
 # We find Oct 19, 2026 is a "typical monday" - there is no difference in the service sets
 # pre- and post- applying service exceptions.
-# 
-# If it is not already written, we write the resulting Dataframe to typical_monday.txt
+#
+# We write the resulting Dataframe to typical_monday.txt
 
 OCT_19_2026 = date(2026, 10, 19)
 assert(services_active_on(OCT_19_2026)[0] == services_active_on(OCT_19_2026)[1])
 
 OUT_PATH = DATA_DIR / "typical_monday.txt"
 
-# newline="" everywhere so the CSV's own "\n" line endings are never translated,
-# making the write and the read-back comparison byte-for-byte consistent.
-def write_if_changed(df: pd.DataFrame, path: Path) -> bool:
-    new_csv = df.to_csv(index=False)
-
-    if path.exists():
-        with open(path, "r", newline="", encoding="utf-8") as f:
-            if f.read() == new_csv:
-                return False  # Already up to date - leave the file alone.
-
-    with open(path, "w", newline="", encoding="utf-8") as f:
-        f.write(new_csv)
-    return True
-
-if write_if_changed(trips_on_day(OCT_19_2026), OUT_PATH):
-    print(f"Wrote {OUT_PATH}")
-else:
-    print(f"{OUT_PATH} already up to date")
+# newline="" so the CSV's own "\n" line endings are never translated.
+with open(OUT_PATH, "w", newline="", encoding="utf-8") as f:
+    f.write(trips_on_day(OCT_19_2026).to_csv(index=False))
+print(f"Wrote {OUT_PATH}")

@@ -24,7 +24,7 @@ The suite is in three layers:
 
   * SYNTHETIC   - a hand-built schedule pinning the exact boundary around
                   `turnaround`, where the real data is too sparse to probe.
-  * PROPERTIES  - exhaustive sweeps over all 178^2 real pairs, asserting the
+  * PROPERTIES  - exhaustive sweeps over all 132^2 real pairs, asserting the
                   invariants the fleet model depends on. These are the tests
                   that actually protect the result.
   * REAL PAIRS  - named cases from the GTFS data, as readable anchors.
@@ -213,7 +213,7 @@ def test_unknown_trip_id_raises_keyerror(synthetic):
 # Properties, checked exhaustively over the real schedule
 # ==========================================================================
 #
-# These sweep all 178^2 = 31,684 ordered pairs. Spot checks can miss a sign
+# These sweep all 132^2 = 17,424 ordered pairs. Spot checks can miss a sign
 # error that only bites on a handful of pairs; these cannot. They are also the
 # invariants the min-fleet computation actually relies on, so a regression here
 # means a wrong answer, not just a wrong test.
@@ -299,12 +299,12 @@ def test_rejects_every_pair_that_runs_backwards(real_schedule):
 
 def test_arc_count_is_stable(accepted):
     """
-    Characterization test. 2,846 arcs at a 20-minute turnaround over the
-    178-trip typical Monday. Not a spec -- a tripwire, so that a change in the
+    Characterization test. 2,115 arcs at a 20-minute turnaround over the
+    132-trip typical Monday. Not a spec -- a tripwire, so that a change in the
     GTFS parse or the chaining rule surfaces here with a number to compare
     against rather than silently shifting the fleet result downstream.
     """
-    assert len(accepted) == 2846
+    assert len(accepted) == 2115
 
 
 # ==========================================================================
@@ -342,13 +342,13 @@ def test_real_pair_nineteen_minutes_passes_under_a_relaxed_turnaround():
 
 def test_real_pair_with_a_long_idle_layover():
     """
-    233003846  (185, 191, 13140, 14460)  in at Redlands-University 14460
-    233003845  (191, 185, 83220, 84540)  out from Redlands-University 83220
+    295700441  (123, 107, 14040, 19500)  Riverside -> LAUS, in at 19500
+    295200235  (107, 185, 77880, 84540)  LAUS -> San Bernardino, out at 77880
 
-    A 68,760s gap -- the set sits for 19 hours. Legal, if idle: turnaround is a
-    floor, not a ceiling.
+    A 58,380s gap -- the set sits for over 16 hours, the longest layover any
+    accepted pair carries. Legal, if idle: turnaround is a floor, not a ceiling.
     """
-    assert valid_pair(233003846, 233003845) is True
+    assert valid_pair(295700441, 295200235) is True
 
 
 def test_real_pair_with_second_trip_departing_first():
@@ -364,21 +364,21 @@ def test_real_pair_with_second_trip_departing_first():
 
 def test_real_pair_at_different_stations():
     """
-    200000029  (141, 185, 62820, 69360)  ends San Bernardino (185)
-    233003841  (191, 185, 76020, 77340)  starts Redlands-University (191)
+    200000030  (123, 141, 40200, 45120)  ends Laguna Niguel / Mission Viejo (141)
+    294100345  (185, 107, 52860, 59460)  starts San Bernardino (185)
 
-    Nearly two hours of slack, but the stations differ, so no chain.
+    A little over two hours of slack, but the stations differ, so no chain.
     """
-    assert valid_pair(200000029, 233003841) is False
+    assert valid_pair(200000030, 294100345) is False
 
 
 def test_real_schedule_has_the_expected_shape(real_schedule):
     """
-    Guards the assumption the fixtures above rest on: 178 trips, each a 4-tuple
+    Guards the assumption the fixtures above rest on: 132 trips, each a 4-tuple
     of ints. If typical_monday_trips.py changes shape, this fails first and
     explains why the hardcoded pairs stopped making sense.
     """
-    assert len(real_schedule) == 178
+    assert len(real_schedule) == 132
     for trip_id, entry in real_schedule.items():
         assert isinstance(entry, tuple) and len(entry) == 4, trip_id
         assert all(isinstance(v, int) for v in entry), trip_id

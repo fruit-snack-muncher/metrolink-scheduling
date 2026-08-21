@@ -115,52 +115,6 @@ San Bernardino Line,1146,294100352,San Bernardino - Downtown,352,0
 San Bernardino Line,1146,294100353,L.A. Union Station,353,1
 San Bernardino Line,1146,295200235,San Bernardino - Downtown,360,0
 San Bernardino Line,1146,294100361,L.A. Union Station,361,1
-San Bernardino Line,1146,233003846,Redlands - University,3800,0
-San Bernardino Line,1146,233003801,San Bernardino - Downtown,3801,1
-San Bernardino Line,1146,233003802,Redlands - University,3802,0
-San Bernardino Line,1146,233003803,San Bernardino - Downtown,3803,1
-San Bernardino Line,1146,233003804,Redlands - University,3804,0
-San Bernardino Line,1146,233003847,San Bernardino - Downtown,3805,1
-San Bernardino Line,1146,233003806,Redlands - University,3806,0
-San Bernardino Line,1146,233003807,San Bernardino - Downtown,3807,1
-San Bernardino Line,1146,233003814,Redlands - University,3808,0
-San Bernardino Line,1146,233003809,San Bernardino - Downtown,3809,1
-San Bernardino Line,1146,233003810,Redlands - University,3810,0
-San Bernardino Line,1146,233003811,San Bernardino - Downtown,3811,1
-San Bernardino Line,1146,233003812,Redlands - University,3812,0
-San Bernardino Line,1146,233003813,San Bernardino - Downtown,3813,1
-San Bernardino Line,1146,233003808,Redlands - University,3814,0
-San Bernardino Line,1146,233003815,San Bernardino - Downtown,3815,1
-San Bernardino Line,1146,233003816,Redlands - University,3816,0
-San Bernardino Line,1146,233003817,San Bernardino - Downtown,3817,1
-San Bernardino Line,1146,233003818,Redlands - University,3818,0
-San Bernardino Line,1146,233003819,San Bernardino - Downtown,3819,1
-San Bernardino Line,1146,233003820,Redlands - University,3820,0
-San Bernardino Line,1146,233003821,San Bernardino - Downtown,3821,1
-San Bernardino Line,1146,233003822,Redlands - University,3822,0
-San Bernardino Line,1146,233003823,San Bernardino - Downtown,3823,1
-San Bernardino Line,1146,233003824,Redlands - University,3824,0
-San Bernardino Line,1146,233003825,San Bernardino - Downtown,3825,1
-San Bernardino Line,1146,233003826,Redlands - University,3826,0
-San Bernardino Line,1146,233003827,San Bernardino - Downtown,3827,1
-San Bernardino Line,1146,233003828,Redlands - University,3828,0
-San Bernardino Line,1146,233003829,San Bernardino - Downtown,3829,1
-San Bernardino Line,1146,233003830,Redlands - University,3830,0
-San Bernardino Line,1146,233003831,San Bernardino - Downtown,3831,1
-San Bernardino Line,1146,233003832,Redlands - University,3832,0
-San Bernardino Line,1146,233003833,San Bernardino - Downtown,3833,1
-San Bernardino Line,1146,233003834,Redlands - University,3834,0
-San Bernardino Line,1146,233003849,San Bernardino - Downtown,3835,1
-San Bernardino Line,1146,233003836,Redlands - University,3836,0
-San Bernardino Line,1146,233003837,San Bernardino - Downtown,3837,1
-San Bernardino Line,1146,233003838,Redlands - University,3838,0
-San Bernardino Line,1146,233003851,San Bernardino - Downtown,3839,1
-San Bernardino Line,1146,233003840,Redlands - University,3840,0
-San Bernardino Line,1146,233003841,San Bernardino - Downtown,3841,1
-San Bernardino Line,1146,233003842,Redlands - University,3842,0
-San Bernardino Line,1146,233003843,San Bernardino - Downtown,3843,1
-San Bernardino Line,1146,233003844,Redlands - University,3844,0
-San Bernardino Line,1146,233003845,San Bernardino - Downtown,3845,1
 Ventura County Line,1141,294100122,L.A. Union Station,102,1
 Ventura County Line,1141,294200134,Moorpark,103,0
 Ventura County Line,1141,294200141,Moorpark,131,0
