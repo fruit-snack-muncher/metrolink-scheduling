@@ -3,7 +3,7 @@ Exact same code as zero_depot.py, except the valid arcs have changed to allow de
 Changes the objective slightly, as to penalize long deadheading trips.
 """
 
-from preformulation import valid_arcs_deadheading, weights_and_arcs
+from preformulation import weights_and_arcs
 from typical_monday_trips import typical_monday_trip_ids, typical_monday_trip_schedule, stops
 import pulp
 
