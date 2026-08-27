@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "metrolink-scheduling"
 version = "0.1.0"
 description = "Minimum-fleet trainset scheduling for Metrolink GTFS timetables, formulated as a min-cost flow / min path cover LP."
-# readme = "README.md"  # re-enable once the README is written; a missing file
+readme = "README.md"  # re-enable once the README is written; a missing file
 #                         here is a build error.
 requires-python = ">=3.13"
 license = "MIT"

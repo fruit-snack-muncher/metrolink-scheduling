@@ -1,7 +1,0 @@
-matplotlib<4,>=3.11
-networkx<4,>=3.6
-pandas<4,>=3.0
-PuLP<4,>=3.3
-
-[dev]
-pytest<10,>=9.1
