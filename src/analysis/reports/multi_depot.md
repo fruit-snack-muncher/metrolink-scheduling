@@ -12,23 +12,23 @@ Depot 107, L.A. Union Station - 24 of 30 trainsets
 Block 01 (4 total trips): 295900043 -> 294200147 -> 294200148 -> 296000105
 Block 02 (5 total trips): 295900046 -> 294200133 -> 294200154 -> 200090123 -> 200090225
 Block 03 (5 total trips): 295900055 -> 294400182 -> 294300167 -> 200000221 -> 200000230
-Block 04 (4 total trips): 295900061 -> 294100316 -> 294100341 -> 200090340
-Block 05 (3 total trips): 200090205 -> 294100132 -> 295800463
-Block 06 (3 total trips): 294300162 -> 200090702 -> 294200175
-Block 07 (3 total trips): 294300163 -> 294300215 -> 200090224
-Block 08 (4 total trips): 200090206 -> 295201004 -> 294100349 -> 295800464
-Block 09 (5 total trips): 294300238 -> 294400173 -> 294300165 -> 296200099 -> 296200627
-Block 11 (5 total trips): 296500082 -> 296100045 -> 200000229 -> 294300216 -> 294200141
-Block 12 (4 total trips): 296500084 -> 296100057 -> 296200088 -> 200000029
-Block 13 (4 total trips): 296500085 -> 296600060 -> 295700445 -> 295800465
-Block 14 (5 total trips): 296100042 -> 200090308 -> 295100254 -> 295200253 -> 296200629
-Block 15 (5 total trips): 296200094 -> 296100048 -> 294100328 -> 294100353 -> 200000026
-Block 16 (4 total trips): 296100044 -> 296200101 -> 296100041 -> 200000336
-Block 17 (4 total trips): 295700441 -> 295100242 -> 296200096 -> 296200625
-Block 18 (5 total trips): 295700442 -> 200090402 -> 200000817 -> 296600062 -> 294100361
-Block 19 (4 total trips): 200090405 -> 294300211 -> 294300220 -> 294400189
-Block 20 (4 total trips): 295700444 -> 296000100 -> 294100713 -> 296000097
-Block 21 (3 total trips): 200000300 -> 200000325 -> 200090404
+Block 04 (3 total trips): 200090205 -> 294100132 -> 295800463
+Block 05 (3 total trips): 294300162 -> 200090702 -> 294200175
+Block 06 (3 total trips): 294300163 -> 294300215 -> 200090224
+Block 07 (4 total trips): 200090206 -> 295201004 -> 294100349 -> 295800464
+Block 08 (5 total trips): 294300238 -> 294400173 -> 294300165 -> 296200099 -> 296200627
+Block 10 (5 total trips): 296500082 -> 296100045 -> 200000229 -> 294300216 -> 294200141
+Block 11 (4 total trips): 296500084 -> 296100057 -> 296200088 -> 200000029
+Block 12 (5 total trips): 296500085 -> 296600060 -> 295700445 -> 295800465 -> 200000026
+Block 13 (5 total trips): 296100042 -> 200090308 -> 295100254 -> 295200253 -> 296200629
+Block 14 (4 total trips): 296200094 -> 296100048 -> 294100328 -> 294100353
+Block 15 (4 total trips): 296100044 -> 296200101 -> 296100041 -> 200000336
+Block 16 (5 total trips): 295700441 -> 295900061 -> 294100316 -> 294100341 -> 200090340
+Block 17 (5 total trips): 295700442 -> 200090402 -> 200000817 -> 296600062 -> 294100361
+Block 18 (4 total trips): 200090405 -> 294300211 -> 294300220 -> 294400189
+Block 19 (4 total trips): 295700444 -> 296000100 -> 294100713 -> 296000097
+Block 20 (3 total trips): 200000300 -> 200000325 -> 200090404
+Block 27 (3 total trips): 295100242 -> 296200096 -> 296200625
 Block 28 (5 total trips): 294100122 -> 296000081 -> 200090709 -> 296200093 -> 294200138
 Block 29 (3 total trips): 294200134 -> 294100127 -> 296000091
 Block 30 (4 total trips): 294100123 -> 295200233 -> 200090337 -> 296200624
@@ -40,52 +40,53 @@ Depot 107, L.A. Union Station - 24 of 30 trainsets (24 blocks)
      1  Perris - South                     -> Perris - South                      04:20:00 -> 19:47:00  span 15:27:00
      2  Perris - South                     -> Lancaster                           05:20:00 -> 20:51:00  span 15:31:00
      3  Perris - South                     -> L.A. Union Station                  06:20:00 -> 22:20:00  span 16:00:00
-     4  Riverside - Downtown               -> San Bernardino - Downtown           08:01:00 -> 18:29:00  span 10:28:00
-     5  L.A. Union Station                 -> Riverside - Downtown                06:39:00 -> 19:06:00  span 12:27:00
-     6  Lancaster                          -> Ventura - East                      05:11:00 -> 18:28:00  span 13:17:00
-     7  Lancaster                          -> L.A. Union Station                  06:11:00 -> 18:20:00  span 12:09:00
-     8  Vista Canyon                       -> Riverside - Downtown                08:10:00 -> 20:06:00  span 11:56:00
-     9  Lancaster                          -> L.A. Union Station                  04:11:00 -> 19:20:00  span 15:09:00
-    11  San Bernardino - Downtown          -> Moorpark                            04:49:00 -> 19:44:00  span 14:55:00
-    12  San Bernardino - Downtown          -> San Bernardino - Downtown           05:49:00 -> 19:16:00  span 13:27:00
-    13  San Bernardino - Downtown          -> Riverside - Downtown                06:49:00 -> 17:06:00  span 10:17:00
-    14  Oceanside                          -> L.A. Union Station                  04:18:00 -> 20:20:00  span 16:02:00
-    15  L.A. Union Station                 -> Lancaster                           05:40:00 -> 21:51:00  span 16:11:00
-    16  Oceanside                          -> San Bernardino - Downtown           05:18:00 -> 17:29:00  span 12:11:00
-    17  Riverside - Downtown               -> L.A. Union Station                  03:54:00 -> 18:20:00  span 14:26:00
-    18  Riverside - Downtown               -> L.A. Union Station                  04:54:00 -> 20:31:00  span 15:37:00
-    19  Riverside - Downtown               -> Lancaster                           05:54:00 -> 19:51:00  span 13:57:00
-    20  Riverside - Downtown               -> Perris - South                      06:54:00 -> 18:47:00  span 11:53:00
-    21  L.A. Union Station                 -> Riverside - Downtown                06:38:00 -> 18:06:00  span 11:28:00
+     4  L.A. Union Station                 -> Riverside - Downtown                06:39:00 -> 19:06:00  span 12:27:00
+     5  Lancaster                          -> Ventura - East                      05:11:00 -> 18:28:00  span 13:17:00
+     6  Lancaster                          -> L.A. Union Station                  06:11:00 -> 18:20:00  span 12:09:00
+     7  Vista Canyon                       -> Riverside - Downtown                08:10:00 -> 20:06:00  span 11:56:00
+     8  Lancaster                          -> L.A. Union Station                  04:11:00 -> 19:20:00  span 15:09:00
+    10  San Bernardino - Downtown          -> Moorpark                            04:49:00 -> 19:44:00  span 14:55:00
+    11  San Bernardino - Downtown          -> San Bernardino - Downtown           05:49:00 -> 19:16:00  span 13:27:00
+    12  San Bernardino - Downtown          -> Lancaster                           06:49:00 -> 21:51:00  span 15:02:00
+    13  Oceanside                          -> L.A. Union Station                  04:18:00 -> 20:20:00  span 16:02:00
+    14  L.A. Union Station                 -> L.A. Union Station                  05:40:00 -> 18:31:00  span 12:51:00
+    15  Oceanside                          -> San Bernardino - Downtown           05:18:00 -> 17:29:00  span 12:11:00
+    16  Riverside - Downtown               -> San Bernardino - Downtown           03:54:00 -> 18:29:00  span 14:35:00
+    17  Riverside - Downtown               -> L.A. Union Station                  04:54:00 -> 20:31:00  span 15:37:00
+    18  Riverside - Downtown               -> Lancaster                           05:54:00 -> 19:51:00  span 13:57:00
+    19  Riverside - Downtown               -> Perris - South                      06:54:00 -> 18:47:00  span 11:53:00
+    20  L.A. Union Station                 -> Riverside - Downtown                06:38:00 -> 18:06:00  span 11:28:00
+    27  San Bernardino - Downtown          -> L.A. Union Station                  08:41:00 -> 18:20:00  span 09:39:00
     28  Ventura - East                     -> Ventura - East                      04:43:00 -> 19:26:00  span 14:43:00
     29  L.A. Union Station                 -> Perris - South                      06:30:00 -> 17:47:00  span 11:17:00
     30  Ventura - East                     -> Oceanside                           05:43:00 -> 18:38:00  span 12:55:00
     31  Moorpark                           -> Oceanside                           07:11:00 -> 19:38:00  span 12:27:00
 
-    span min / median / max   10:17:00 / 13:22:00 / 16:11:00
+    span min / median / max   09:39:00 / 13:22:00 / 16:02:00
 
   Endpoint balance
-    L.A. Union Station                   4 out   6 in   <- -2
+    L.A. Union Station                   4 out   7 in   <- -3
     Lancaster                            3 out   3 in
     Moorpark                             1 out   1 in
     Oceanside                            2 out   2 in
     Perris - South                       3 out   3 in
-    Riverside - Downtown                 5 out   4 in   <- +1
-    San Bernardino - Downtown            3 out   3 in
+    Riverside - Downtown                 4 out   3 in   <- +1
+    San Bernardino - Downtown            4 out   3 in   <- +1
     Ventura - East                       2 out   2 in
     Vista Canyon                         1 out   0 in   <- +1
-    2 block(s) finish out of position across 3 station(s)
+    3 block(s) finish out of position across 4 station(s)
 
   Utilisation
-    revenue 170 h of 324 block-hours = 52%
+    revenue 170 h of 325 block-hours = 52%
 
   Turns
-    75 turns: 6 deadhead(s), 69 same-station
-    08:34:08 empty running, mean 86 min
-      blk 17  L.A. Union Station                 -> San Bernardino - Downtown           1.83 h empty  of 3.27 h gap
-      blk 14  San Bernardino - Downtown          -> Laguna Niguel / Mission Viejo       1.74 h empty  of 2.55 h gap
-      blk  6  Riverside - Downtown               -> L.A. Union Station                  1.45 h empty  of 2.45 h gap
-      blk  5  Vista Canyon                       -> Chatsworth                          1.39 h empty  of 7.73 h gap
+    75 turns: 7 deadhead(s), 68 same-station
+    09:38:25 empty running, mean 83 min
+      blk 13  San Bernardino - Downtown          -> Laguna Niguel / Mission Viejo       1.74 h empty  of 2.55 h gap
+      blk  5  Riverside - Downtown               -> L.A. Union Station                  1.45 h empty  of 2.45 h gap
+      blk 12  Riverside - Downtown               -> L.A. Union Station                  1.45 h empty  of 2.55 h gap
+      blk 16  L.A. Union Station                 -> Riverside - Downtown                1.45 h empty  of 2.60 h gap
+      blk  4  Vista Canyon                       -> Chatsworth                          1.39 h empty  of 7.73 h gap
       blk 28  Laguna Niguel / Mission Viejo      -> L.A. Union Station                  1.31 h empty  of 2.80 h gap
       blk  2  Chatsworth                         -> L.A. Union Station                  0.84 h empty  of 3.37 h gap
 
@@ -93,24 +94,24 @@ Depot 107, L.A. Union Station - 24 of 30 trainsets (24 blocks)
 Depot 185, San Bernardino - Downtown - 7 of 7 trainsets
 =======================================================
 
-Block 10 (6 total trips): 296500087 -> 296800442 -> 200000030 -> 296600058 -> 294100827 -> 294100826
-Block 22 (5 total trips): 200000301 -> 296200098 -> 296600054 -> 294100823 -> 294100824
-Block 23 (4 total trips): 295100226 -> 295200225 -> 200090329 -> 200000382
-Block 24 (4 total trips): 200000381 -> 296200102 -> 296100049 -> 294100344
-Block 25 (4 total trips): 295100223 -> 200000121 -> 294100147 -> 294100352
-Block 26 (6 total trips): 295100234 -> 200090682 -> 296100047 -> 200090219 -> 294300226 -> 295200235
-Block 27 (4 total trips): 295100238 -> 294300217 -> 200000222 -> 294100348
+Block 09 (6 total trips): 296500087 -> 296800442 -> 200000030 -> 296600058 -> 294100827 -> 294100826
+Block 21 (5 total trips): 200000301 -> 296200098 -> 296600054 -> 294100823 -> 294100824
+Block 22 (4 total trips): 295100226 -> 295200225 -> 200090329 -> 200000382
+Block 23 (4 total trips): 200000381 -> 296200102 -> 296100049 -> 294100344
+Block 24 (4 total trips): 295100223 -> 200000121 -> 294100147 -> 294100352
+Block 25 (6 total trips): 295100234 -> 200090682 -> 296100047 -> 200090219 -> 294300226 -> 295200235
+Block 26 (4 total trips): 295100238 -> 294300217 -> 200000222 -> 294100348
 
 Depot 185, San Bernardino - Downtown - 7 of 7 trainsets (7 blocks)
 
   Blocks
-    10  San Bernardino - Downtown          -> San Bernardino - Downtown           03:49:00 -> 21:16:00  span 17:27:00
-    22  San Bernardino - Downtown          -> San Bernardino - Downtown           03:41:00 -> 20:16:00  span 16:35:00
-    23  San Bernardino - Downtown          -> Redlands - Downtown                 04:41:00 -> 19:19:00  span 14:38:00
-    24  Redlands - Downtown                -> San Bernardino - Downtown           05:23:00 -> 19:29:00  span 14:06:00
-    25  San Bernardino - Downtown          -> San Bernardino - Downtown           06:11:00 -> 21:29:00  span 15:18:00
-    26  San Bernardino - Downtown          -> San Bernardino - Downtown           06:41:00 -> 23:29:00  span 16:48:00
-    27  San Bernardino - Downtown          -> San Bernardino - Downtown           07:41:00 -> 20:29:00  span 12:48:00
+     9  San Bernardino - Downtown          -> San Bernardino - Downtown           03:49:00 -> 21:16:00  span 17:27:00
+    21  San Bernardino - Downtown          -> San Bernardino - Downtown           03:41:00 -> 20:16:00  span 16:35:00
+    22  San Bernardino - Downtown          -> Redlands - Downtown                 04:41:00 -> 19:19:00  span 14:38:00
+    23  Redlands - Downtown                -> San Bernardino - Downtown           05:23:00 -> 19:29:00  span 14:06:00
+    24  San Bernardino - Downtown          -> San Bernardino - Downtown           06:11:00 -> 21:29:00  span 15:18:00
+    25  San Bernardino - Downtown          -> San Bernardino - Downtown           06:41:00 -> 23:29:00  span 16:48:00
+    26  San Bernardino - Downtown          -> San Bernardino - Downtown           07:41:00 -> 20:29:00  span 12:48:00
 
     span min / median / max   12:48:00 / 15:18:00 / 17:27:00
 
@@ -133,89 +134,89 @@ Multi-depot, fleet-wide (31 blocks)
      1  Perris - South                     -> Perris - South                      04:20:00 -> 19:47:00  span 15:27:00
      2  Perris - South                     -> Lancaster                           05:20:00 -> 20:51:00  span 15:31:00
      3  Perris - South                     -> L.A. Union Station                  06:20:00 -> 22:20:00  span 16:00:00
-     4  Riverside - Downtown               -> San Bernardino - Downtown           08:01:00 -> 18:29:00  span 10:28:00
-     5  L.A. Union Station                 -> Riverside - Downtown                06:39:00 -> 19:06:00  span 12:27:00
-     6  Lancaster                          -> Ventura - East                      05:11:00 -> 18:28:00  span 13:17:00
-     7  Lancaster                          -> L.A. Union Station                  06:11:00 -> 18:20:00  span 12:09:00
-     8  Vista Canyon                       -> Riverside - Downtown                08:10:00 -> 20:06:00  span 11:56:00
-     9  Lancaster                          -> L.A. Union Station                  04:11:00 -> 19:20:00  span 15:09:00
-    10  San Bernardino - Downtown          -> San Bernardino - Downtown           03:49:00 -> 21:16:00  span 17:27:00
-    11  San Bernardino - Downtown          -> Moorpark                            04:49:00 -> 19:44:00  span 14:55:00
-    12  San Bernardino - Downtown          -> San Bernardino - Downtown           05:49:00 -> 19:16:00  span 13:27:00
-    13  San Bernardino - Downtown          -> Riverside - Downtown                06:49:00 -> 17:06:00  span 10:17:00
-    14  Oceanside                          -> L.A. Union Station                  04:18:00 -> 20:20:00  span 16:02:00
-    15  L.A. Union Station                 -> Lancaster                           05:40:00 -> 21:51:00  span 16:11:00
-    16  Oceanside                          -> San Bernardino - Downtown           05:18:00 -> 17:29:00  span 12:11:00
-    17  Riverside - Downtown               -> L.A. Union Station                  03:54:00 -> 18:20:00  span 14:26:00
-    18  Riverside - Downtown               -> L.A. Union Station                  04:54:00 -> 20:31:00  span 15:37:00
-    19  Riverside - Downtown               -> Lancaster                           05:54:00 -> 19:51:00  span 13:57:00
-    20  Riverside - Downtown               -> Perris - South                      06:54:00 -> 18:47:00  span 11:53:00
-    21  L.A. Union Station                 -> Riverside - Downtown                06:38:00 -> 18:06:00  span 11:28:00
-    22  San Bernardino - Downtown          -> San Bernardino - Downtown           03:41:00 -> 20:16:00  span 16:35:00
-    23  San Bernardino - Downtown          -> Redlands - Downtown                 04:41:00 -> 19:19:00  span 14:38:00
-    24  Redlands - Downtown                -> San Bernardino - Downtown           05:23:00 -> 19:29:00  span 14:06:00
-    25  San Bernardino - Downtown          -> San Bernardino - Downtown           06:11:00 -> 21:29:00  span 15:18:00
-    26  San Bernardino - Downtown          -> San Bernardino - Downtown           06:41:00 -> 23:29:00  span 16:48:00
-    27  San Bernardino - Downtown          -> San Bernardino - Downtown           07:41:00 -> 20:29:00  span 12:48:00
+     4  L.A. Union Station                 -> Riverside - Downtown                06:39:00 -> 19:06:00  span 12:27:00
+     5  Lancaster                          -> Ventura - East                      05:11:00 -> 18:28:00  span 13:17:00
+     6  Lancaster                          -> L.A. Union Station                  06:11:00 -> 18:20:00  span 12:09:00
+     7  Vista Canyon                       -> Riverside - Downtown                08:10:00 -> 20:06:00  span 11:56:00
+     8  Lancaster                          -> L.A. Union Station                  04:11:00 -> 19:20:00  span 15:09:00
+     9  San Bernardino - Downtown          -> San Bernardino - Downtown           03:49:00 -> 21:16:00  span 17:27:00
+    10  San Bernardino - Downtown          -> Moorpark                            04:49:00 -> 19:44:00  span 14:55:00
+    11  San Bernardino - Downtown          -> San Bernardino - Downtown           05:49:00 -> 19:16:00  span 13:27:00
+    12  San Bernardino - Downtown          -> Lancaster                           06:49:00 -> 21:51:00  span 15:02:00
+    13  Oceanside                          -> L.A. Union Station                  04:18:00 -> 20:20:00  span 16:02:00
+    14  L.A. Union Station                 -> L.A. Union Station                  05:40:00 -> 18:31:00  span 12:51:00
+    15  Oceanside                          -> San Bernardino - Downtown           05:18:00 -> 17:29:00  span 12:11:00
+    16  Riverside - Downtown               -> San Bernardino - Downtown           03:54:00 -> 18:29:00  span 14:35:00
+    17  Riverside - Downtown               -> L.A. Union Station                  04:54:00 -> 20:31:00  span 15:37:00
+    18  Riverside - Downtown               -> Lancaster                           05:54:00 -> 19:51:00  span 13:57:00
+    19  Riverside - Downtown               -> Perris - South                      06:54:00 -> 18:47:00  span 11:53:00
+    20  L.A. Union Station                 -> Riverside - Downtown                06:38:00 -> 18:06:00  span 11:28:00
+    21  San Bernardino - Downtown          -> San Bernardino - Downtown           03:41:00 -> 20:16:00  span 16:35:00
+    22  San Bernardino - Downtown          -> Redlands - Downtown                 04:41:00 -> 19:19:00  span 14:38:00
+    23  Redlands - Downtown                -> San Bernardino - Downtown           05:23:00 -> 19:29:00  span 14:06:00
+    24  San Bernardino - Downtown          -> San Bernardino - Downtown           06:11:00 -> 21:29:00  span 15:18:00
+    25  San Bernardino - Downtown          -> San Bernardino - Downtown           06:41:00 -> 23:29:00  span 16:48:00
+    26  San Bernardino - Downtown          -> San Bernardino - Downtown           07:41:00 -> 20:29:00  span 12:48:00
+    27  San Bernardino - Downtown          -> L.A. Union Station                  08:41:00 -> 18:20:00  span 09:39:00
     28  Ventura - East                     -> Ventura - East                      04:43:00 -> 19:26:00  span 14:43:00
     29  L.A. Union Station                 -> Perris - South                      06:30:00 -> 17:47:00  span 11:17:00
     30  Ventura - East                     -> Oceanside                           05:43:00 -> 18:38:00  span 12:55:00
     31  Moorpark                           -> Oceanside                           07:11:00 -> 19:38:00  span 12:27:00
 
-    span min / median / max   10:17:00 / 14:06:00 / 17:27:00
+    span min / median / max   09:39:00 / 14:06:00 / 17:27:00
 
   Endpoint balance
-    L.A. Union Station                   4 out   6 in   <- -2
+    L.A. Union Station                   4 out   7 in   <- -3
     Lancaster                            3 out   3 in
     Moorpark                             1 out   1 in
     Oceanside                            2 out   2 in
     Perris - South                       3 out   3 in
     Redlands - Downtown                  1 out   1 in
-    Riverside - Downtown                 5 out   4 in   <- +1
-    San Bernardino - Downtown            9 out   9 in
+    Riverside - Downtown                 4 out   3 in   <- +1
+    San Bernardino - Downtown           10 out   9 in   <- +1
     Ventura - East                       2 out   2 in
     Vista Canyon                         1 out   0 in   <- +1
-    2 block(s) finish out of position across 3 station(s)
+    3 block(s) finish out of position across 4 station(s)
 
   Utilisation
-    revenue 225 h of 432 block-hours = 52%
+    revenue 225 h of 433 block-hours = 52%
 
   Turns
-    101 turns: 6 deadhead(s), 95 same-station
-    08:34:08 empty running, mean 86 min
-      blk 17  L.A. Union Station                 -> San Bernardino - Downtown           1.83 h empty  of 3.27 h gap
-      blk 14  San Bernardino - Downtown          -> Laguna Niguel / Mission Viejo       1.74 h empty  of 2.55 h gap
-      blk  6  Riverside - Downtown               -> L.A. Union Station                  1.45 h empty  of 2.45 h gap
-      blk  5  Vista Canyon                       -> Chatsworth                          1.39 h empty  of 7.73 h gap
+    101 turns: 7 deadhead(s), 94 same-station
+    09:38:25 empty running, mean 83 min
+      blk 13  San Bernardino - Downtown          -> Laguna Niguel / Mission Viejo       1.74 h empty  of 2.55 h gap
+      blk  5  Riverside - Downtown               -> L.A. Union Station                  1.45 h empty  of 2.45 h gap
+      blk 12  Riverside - Downtown               -> L.A. Union Station                  1.45 h empty  of 2.55 h gap
+      blk 16  L.A. Union Station                 -> Riverside - Downtown                1.45 h empty  of 2.60 h gap
+      blk  4  Vista Canyon                       -> Chatsworth                          1.39 h empty  of 7.73 h gap
       blk 28  Laguna Niguel / Mission Viejo      -> L.A. Union Station                  1.31 h empty  of 2.80 h gap
       blk  2  Chatsworth                         -> L.A. Union Station                  0.84 h empty  of 3.37 h gap
 
-Depot positioning (40 empty legs, 22 already at depot)
-    70:04:10 empty running to and from depots
+Depot positioning (39 empty legs, 23 already at depot)
+    68:59:53 empty running to and from depots
       blk  2  depot 107  2.16 h out to Perris - South                      2.16 h back from Lancaster
       blk  1  depot 107  2.16 h out to Perris - South                      2.16 h back from Perris - South
-      blk  6  depot 107  2.16 h out to Lancaster                           1.93 h back from Ventura - East
+      blk  5  depot 107  2.16 h out to Lancaster                           1.93 h back from Ventura - East
+      blk 12  depot 107  1.83 h out to San Bernardino - Downtown           2.16 h back from Lancaster
       blk 30  depot 107  1.93 h out to Ventura - East                      2.01 h back from Oceanside
       blk 28  depot 107  1.93 h out to Ventura - East                      1.93 h back from Ventura - East
-      blk 16  depot 107  2.01 h out to Oceanside                           1.83 h back from San Bernardino - Downtown
-      blk 12  depot 107  1.83 h out to San Bernardino - Downtown           1.83 h back from San Bernardino - Downtown
-      blk 19  depot 107  1.45 h out to Riverside - Downtown                2.16 h back from Lancaster
-      blk 20  depot 107  1.45 h out to Riverside - Downtown                2.16 h back from Perris - South
+      blk 15  depot 107  2.01 h out to Oceanside                           1.83 h back from San Bernardino - Downtown
+      blk 11  depot 107  1.83 h out to San Bernardino - Downtown           1.83 h back from San Bernardino - Downtown
+      blk 18  depot 107  1.45 h out to Riverside - Downtown                2.16 h back from Lancaster
+      blk 19  depot 107  1.45 h out to Riverside - Downtown                2.16 h back from Perris - South
       blk 31  depot 107  1.28 h out to Moorpark                            2.01 h back from Oceanside
-      blk  4  depot 107  1.45 h out to Riverside - Downtown                1.83 h back from San Bernardino - Downtown
-      blk 13  depot 107  1.83 h out to San Bernardino - Downtown           1.45 h back from Riverside - Downtown
-      blk 11  depot 107  1.83 h out to San Bernardino - Downtown           1.28 h back from Moorpark
-      blk  8  depot 107  1.18 h out to Vista Canyon                        1.45 h back from Riverside - Downtown
-      blk  7  depot 107  2.16 h out to Lancaster                           0.00 h back from L.A. Union Station
-      blk  9  depot 107  2.16 h out to Lancaster                           0.00 h back from L.A. Union Station
-      blk 15  depot 107  0.00 h out to L.A. Union Station                  2.16 h back from Lancaster
+      blk 16  depot 107  1.45 h out to Riverside - Downtown                1.83 h back from San Bernardino - Downtown
+      blk 10  depot 107  1.83 h out to San Bernardino - Downtown           1.28 h back from Moorpark
+      blk  7  depot 107  1.18 h out to Vista Canyon                        1.45 h back from Riverside - Downtown
+      blk  6  depot 107  2.16 h out to Lancaster                           0.00 h back from L.A. Union Station
+      blk  8  depot 107  2.16 h out to Lancaster                           0.00 h back from L.A. Union Station
       blk  3  depot 107  2.16 h out to Perris - South                      0.00 h back from L.A. Union Station
       blk 29  depot 107  0.00 h out to L.A. Union Station                  2.16 h back from Perris - South
-      blk 14  depot 107  2.01 h out to Oceanside                           0.00 h back from L.A. Union Station
-      blk  5  depot 107  0.00 h out to L.A. Union Station                  1.45 h back from Riverside - Downtown
+      blk 13  depot 107  2.01 h out to Oceanside                           0.00 h back from L.A. Union Station
+      blk 27  depot 107  1.83 h out to San Bernardino - Downtown           0.00 h back from L.A. Union Station
+      blk  4  depot 107  0.00 h out to L.A. Union Station                  1.45 h back from Riverside - Downtown
       blk 17  depot 107  1.45 h out to Riverside - Downtown                0.00 h back from L.A. Union Station
-      blk 18  depot 107  1.45 h out to Riverside - Downtown                0.00 h back from L.A. Union Station
-      blk 21  depot 107  0.00 h out to L.A. Union Station                  1.45 h back from Riverside - Downtown
-      blk 23  depot 185  0.00 h out to San Bernardino - Downtown           0.32 h back from Redlands - Downtown
-      blk 24  depot 185  0.32 h out to Redlands - Downtown                 0.00 h back from San Bernardino - Downtown
+      blk 20  depot 107  0.00 h out to L.A. Union Station                  1.45 h back from Riverside - Downtown
+      blk 22  depot 185  0.00 h out to San Bernardino - Downtown           0.32 h back from Redlands - Downtown
+      blk 23  depot 185  0.32 h out to Redlands - Downtown                 0.00 h back from San Bernardino - Downtown
 ```
