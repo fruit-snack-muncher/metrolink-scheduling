@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "metrolink-scheduling"
+version = "0.1.0"
+description = "Minimum-fleet trainset scheduling for Metrolink GTFS timetables, formulated as a min-cost flow / min path cover LP."
+# readme = "README.md"  # re-enable once the README is written; a missing file
+#                         here is a build error.
+requires-python = ">=3.13"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "fruit-snack-muncher", email = "matthewpaek337@gmail.com" }]
+keywords = ["gtfs", "transit", "scheduling", "vehicle-scheduling", "linear-programming"]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Private :: Do Not Upload",
+]
+
+# Pinned in requirements.txt for reproducing the reported results; the ranges
+# here are what the code actually needs.
+dependencies = [
+    "matplotlib>=3.11,<4",
+    "networkx>=3.6,<4",
+    "pandas>=3.0,<4",
+    "PuLP>=3.3,<4",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=9.1,<10"]
+
+[project.urls]
+Repository = "https://github.com/fruit-snack-muncher/metrolink-scheduling"
+
+[tool.setuptools.packages.find]
+# The code imports itself as `src.solvers...`, so `src` is the top-level
+# package rather than a src-layout container directory.
+include = ["src*"]
+namespaces = false
+
+[tool.pytest.ini_options]
+# The repo root on sys.path is what lets tests say
+# `import src.data_processing.preformulation` without an editable install.
+pythonpath = ["."]
+testpaths = ["tests"]
