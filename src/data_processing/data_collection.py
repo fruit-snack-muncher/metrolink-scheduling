@@ -26,8 +26,8 @@ ARROW_FLIRT = set([str(trip) for trip in range(3800, 3900)])
 
 # Resolve relative to this file, not the working directory, so the reads work
 # on any machine that clones the repo and from any directory the script is run
-# from. This module lives in src/, so the repo root is one level up.
-ROOT = Path(__file__).resolve().parents[1]
+# from. This module lives in src/data_processing/, so the root is two levels up.
+ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT / "gtfs_cleaned"
 
 cal = pd.read_csv(DATA_DIR / "calendar.txt", dtype=str)

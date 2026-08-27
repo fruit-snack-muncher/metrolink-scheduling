@@ -34,8 +34,8 @@ from itertools import product
 
 import pytest
 
-import preformulation
-from preformulation import TURNAROUND, valid_pair
+from src.data_processing import preformulation
+from src.data_processing.preformulation import TURNAROUND, valid_pair
 
 # Real Metrolink stop_ids, used here purely as distinguishable labels.
 LAUS = 107  # L.A. Union Station

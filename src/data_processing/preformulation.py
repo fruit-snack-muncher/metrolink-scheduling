@@ -6,16 +6,19 @@ assumed to be TURNAROUND seconds, or twenty minutes. Further description of
 valid trip chains is found in the comments.
 """
 
-from pathlib import Path
-import pandas as pd
 import networkx as nx
-from data_collection import stop_times
-from typical_monday_trips import typical_monday_trip_ids, typical_monday_trip_schedule
+from src.data_processing.data_collection import stop_times
+from src.data_processing.typical_monday_trips import typical_monday_trip_ids, typical_monday_trip_schedule
 from itertools import product, combinations
 
 TURNAROUND = 1200
 
-# ZERO DEPOT : NO DEADHEADING
+
+# ==============================================================================
+#
+# ZERO DEPOT : NO DEADHEADING ALLOWED.
+#
+# ==============================================================================
 
 # Determines if a pair of trips can be chained by a single locomotive.
 # Inputs two trips tripA, tripB and a turnaround. Requires that tripA
@@ -37,23 +40,17 @@ valid_arcs = product(typical_monday_trip_ids, repeat=2)
 valid_arcs = [arc for arc in valid_arcs if valid_pair(arc[0], arc[1])]
 
 
+# ==============================================================================
+#
 # ZERO DEPOT : DEADHEADING ALLOWED.
+#
+# ==============================================================================
 
-# Determines if a pair of trips can be chained by a single locomotive.
-# Inputs two trips tripA, tripB and a turnaround. Allows for deadheading
-# between tripA arrival and tripB departure. The deadheading travel time
-# is the shortest graph distance on an undirected weighted graph, where
-# nodes are stops and edges are travel times. Travel times between conse-
-# cutive stations are computed as mean times for revenue trips, using round
-# to handle rounding errors.
-#
-# Crucially, travel times are ONLY computed along stops traversed on typical 
-# Monday trips. Deadheading never occurs along stops not traversed by some
-# trainset on a typical Monday.
-# 
-# Along with the deadheading, deadheading assumes a turnaround period of
-# TURNAROUND seconds before and after the traversal time.
-#
+# Chaining as in valid_pair, but a deadhead run is allowed between tripA
+# arrival and tripB departure. Its time is the shortest path on an undirected
+# graph of stops, edges weighted by mean consecutive-stop revenue times.
+# Only stops served on a typical Monday are usable; deadheading never runs
+# elsewhere. A TURNAROUND applies both before and after the deadhead run.
 
 stop_times = stop_times.astype({"trip_id": 'int64', "stop_id": 'int64'})
 typical_monday_stop_times = stop_times[stop_times['trip_id'].isin( [trip for trip in typical_monday_trip_ids] )]
@@ -68,15 +65,14 @@ def time_to_sec(time: str) -> int:
     hours, minutes, seconds = time.split(':')
     return 3600 * int(hours) + 60 * int(minutes) + int(seconds)
 
-# Computes stop-pair travel times on a trip-by-trip basis.
+# Stop-pair travel times, trip by trip.
 for trip in typical_monday_trip_ids:
     trip_stop_times = typical_monday_stop_times[typical_monday_stop_times['trip_id'] == int(trip)]
     # Note 'arrival_time' and 'departure_time' are always the same in stop_times.
     trip_stops, trip_times = trip_stop_times['stop_id'], trip_stop_times['arrival_time']
     num_stops = trip_stops.shape[0]
 
-    # Uses a frozenset as the key for typical_monday_consecutive_stops, as to
-    # eliminate the distinction between travelling A->B v.s. A<-B.
+    # Frozenset key: A->B and A<-B are the same pair.
     for step in range(num_stops-1):
         stop_pair = frozenset( [trip_stops.iloc[step], trip_stops.iloc[step+1]] )
         first_time, second_time = trip_times.iloc[step], trip_times.iloc[step+1]
@@ -87,7 +83,7 @@ for trip in typical_monday_trip_ids:
             
         typical_monday_consecutive_stops[stop_pair].append(stop_pair_time)
 
-# Averages the travel time between pairs of stops, using round to get integers.
+# Mean travel time per stop pair, rounded to an integer.
 for pair, times in typical_monday_consecutive_stops.items():
     typical_monday_consecutive_stops[pair] = round( sum(times) / len(times) )
 
@@ -100,10 +96,7 @@ for pair, time in typical_monday_consecutive_stops.items():
 
 typical_monday_graph.add_weighted_edges_from(edges)
 
-# Find distances between all stop pairs, computed via Dijkstra's implemented in nx.
-# The data is stored as a dictionary typical_monday_deadhead_times, with key: value
-# has key as a frozenset of stop pairs, and value an integer distance (in time) between
-# the stations.
+# All-pairs distances via Dijkstra, keyed by frozenset of the stop pair.
 typical_monday_stop_combinations = list(combinations(typical_monday_stops, 2))
 typical_monday_deadhead_times = {}
 for origin, terminus in typical_monday_stop_combinations:
@@ -129,20 +122,13 @@ valid_arcs_deadheading = product(typical_monday_trip_ids, repeat=2)
 valid_arcs_deadheading = [arc for arc in valid_arcs_deadheading if valid_pair_deadheading(arc[0], arc[1])]
 
 
-# Prices an empty run against the trainset it saves: the marginal cost of a deadhead
-# train-hour (~$665 - fuel at 3.00 gal/train-mile, plus wear and part of the crew's
-# time) over the marginal cost of a trainset-day (~$4,030 - a six-unit consist over an
-# FTA 39-year life, plus crew, servicing and idle fuel; revenue fuel does not belong
-# here, as an extra set adds no revenue miles). Derivation, sources and the assumptions
-# that are NOT sourced: trainset_value_hours_estimation.md at the repo root.
+# Prices an empty run against the trainset it saves: ~$665 per deadhead train-hour over
+# ~$4,030 per trainset-day. Derivation and sources: trainset_value_hours_estimation.md.
 #
-# The reciprocal is the break-even deadhead, ~5.9 h. Nothing here is that long - the
-# worst arc is 4.32 h - so the penalty only orders solutions that chain equally many
-# trips; above 0.232 it would start forbidding arcs outright.
-#
-# Fleet size is insensitive to the rate: anything from ~1e-7 to 0.37 gives the same 31
-# trainsets over the same 5 deadheads, totalling 6.15 h. What guarantees we stayed
-# below 0.37 is assert(fleet_size == 31) in zero_depot_deadheading, not the rate.
+# Break-even is the reciprocal, ~5.9 h; the worst arc here is 4.32 h, so the penalty only
+# orders solutions rather than forbidding arcs. Fleet size is insensitive to the rate -
+# ~1e-7 to 0.37 all give 31 trainsets over the same 5 deadheads (6.15 h). The guard on
+# staying under 0.37 is assert(fleet_size == 31) in zero_depot_deadheading, not the rate.
 TRAINSET_DAYS_PER_DEADHEAD_HOUR = 0.17
 
 deadheading_weights = []
@@ -155,29 +141,94 @@ for tripA, tripB in valid_arcs_deadheading:
         deadheading_weights.append( typical_monday_deadhead_times[frozenset([arrival, departure])]
                                     / 3600 * TRAINSET_DAYS_PER_DEADHEAD_HOUR )
 
-# The linear program maximizes the sum of w_{ij} x_{ij} over arcs i->j, with x_{ij} in
-# {0, 1}. So far we hold the cost; w_{ij} is one trainset saved less that cost, and the
-# subtraction below takes the difference. We subtract each of the above weights from 1
-# to get our final list of weights. Same-station turns weigh exactly 1; the worst arc on
-# this network is 4.32 h, so the weights span [0.265, 1] and none of them is negative -
-# the penalty orders the solutions rather than forbidding any arc.
+# The LP maximizes sum of w_{ij} x_{ij}, so w_{ij} is one trainset saved less the cost
+# above. Weights span [0.265, 1] - same-station turns are exactly 1, none is negative.
+modified_deadheading_weights = list(map(lambda x: 1-x, deadheading_weights))
 
-deadheading_weights = list(map(lambda x: 1-x, deadheading_weights))
+# A list, not the bare zip: consumers iterate this more than once.
+weights_and_arcs = list(zip(modified_deadheading_weights, valid_arcs_deadheading))
 
 
-# A list, not the bare zip: the consumers iterate this more than once, and a
-# zip would be silently empty on the second pass.
-weights_and_arcs = list(zip(deadheading_weights, valid_arcs_deadheading))
+# ==============================================================================
+#
+# MULTI-DEPOT : DEADHEADING ALLOWED.
+#
+# ==============================================================================
+
+# Adds additional weights for deadheading trips to and from various stops associated with
+# overnight storage facilities. Crucially, every trainset must originate from and return
+# to a particular home depot. 
+# 
+# As a linear program, there is now an additional sort of decision variable, corresponding 
+# to the choice of home depot. Naturally, we re-formulate the problem through MAX-cost flow,
+# where the cost of sending flow along an arc is equal to the weight of the arc. Notably, the
+# cost of flow for a same-stop trip chain is 1.
+#
+# As determining the home depot (source) to initiate a chain of trips also determines the 
+# home depot for chain termination, the only decision is where a chain of trips originates.
+# We interpret a deadheading move to/from an overnight depot as pure cost, so we drop + 1 
+# from the original weighting system.
+#
+# Stops associated/in near proximity with overnight storage depots.
+# 107 : L.A. Union Station, Central Maintenance Facility (30+ trainset capacity), as per
+#       (https://metrolinktrains.com/community-main/cmf/). Assumed 25, as per claim that
+#       25 trainsets are maintained daily at CMF.
+# 185 : San Bernardino Downtown, Eastern Maintenance Facility (7 trainset capacity)
+# TO BE UPDATED!
+
+OVERNIGHT_DEPOTS = [107, 185]
+OVERNIGHT_CAPACITIES = [30, 7]
+
+# All deadheading times to overnight depots, collected for every stop-depot pair.
+# The deadheading times are pre-emptively weighted.
+multi_depot_deadheading = {}
+multi_depot_stops = list(product(typical_monday_stops, OVERNIGHT_DEPOTS))
+for stop, depot in multi_depot_stops:
+    key = (stop, depot)
+    if stop == depot:
+        # A trainset already at its depot runs no empty miles, so no penalty.
+        multi_depot_deadheading[key] = 0
+    else:
+        deadhead_time = typical_monday_deadhead_times[frozenset(key)]
+        # A depot on a branch disconnected from some stop would put -inf coefficients in the
+        # objective. Both current depots reach every Monday stop; fail loudly if that changes.
+        assert deadhead_time != float('inf'), f"stop {stop} is unreachable from depot {depot}"
+        multi_depot_deadheading[key] = 0 - (deadhead_time / 3600 * TRAINSET_DAYS_PER_DEADHEAD_HOUR)
+
+# The deadhead weights for:
+#  1. Departing from a depot to initiate a trip, and
+#  2. Arriving at a depot to conclude a day's chain.
+# For every trip, finds the deadhead weight for each depot->trip and trip-> 
+multi_depot_weighted_departures, multi_depot_weighted_arrivals = {}, {}
+for trip in typical_monday_trip_ids:
+    trip_stop_times = typical_monday_stop_times[typical_monday_stop_times['trip_id'] == int(trip)]
+    origin, terminus = trip_stop_times.iloc[0, 3], trip_stop_times.iloc[-1, 3]
+    for depot in OVERNIGHT_DEPOTS:
+        multi_depot_weighted_departures[(depot, (trip,))] = multi_depot_deadheading[(origin, depot)]
+        multi_depot_weighted_arrivals[(depot, (trip,))] = multi_depot_deadheading[(terminus, depot)]
+
+for _, (trip,) in multi_depot_weighted_departures.keys():
+    assert(trip in typical_monday_trip_ids)
+for _, (trip,) in multi_depot_weighted_arrivals.keys():
+    assert(trip in typical_monday_trip_ids)
+
+# Change to list[float, tuple[int, tuple[int]]].
+multi_depot_weighted_departures = [(weight, departure) for departure, weight in multi_depot_weighted_departures.items()]
+multi_depot_weighted_arrivals = [(weight, arrival) for arrival, weight in multi_depot_weighted_arrivals.items()]
+
+# A modified version of weights_and_arcs, where the arc names includes the home depot for each
+# chained trip not involving a deadhead move to/away from a depot.
+multi_weights_and_arcs = [(weight, depot, arc) for depot in OVERNIGHT_DEPOTS
+                                               for weight, arc in weights_and_arcs]
 
 if __name__ == "__main__":
-    # One line per arc, with the station the turn happens at and how long the
-    # set sits there, which is what makes a chaining worth eyeballing.
+    # One line per arc: where the turn happens and how long the set sits there.
     print(f"{len(valid_arcs)} valid chainings among {len(typical_monday_trip_ids)} trips")
     for tripA, tripB in valid_arcs:
         turn_stop = typical_monday_trip_schedule[tripA][1]
         layover = typical_monday_trip_schedule[tripB][2] - typical_monday_trip_schedule[tripA][3]
         print(f"{tripA} -> {tripB}   at stop {turn_stop:>3}   {layover // 60:>4} min layover")
 
-    # And the deadheading arc set, which is the one the weights above apply to.
+    # The deadheading arc set, which the weights above apply to.
     print(f"\n{len(valid_arcs_deadheading)} valid chainings with deadheading allowed, "
           f"at {TRAINSET_DAYS_PER_DEADHEAD_HOUR} trainset-days per deadhead hour")

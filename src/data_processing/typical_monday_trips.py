@@ -14,10 +14,9 @@ demonstrated in the number of non-label non-empty lines in typical_monday.txt
 from pathlib import Path
 
 import pandas as pd
-from datetime import date
 
-# src/ is one level below the repo root, where the GTFS tables live.
-ROOT = Path(__file__).resolve().parents[1]
+# src/data_processing/ is two levels below the repo root, where the GTFS tables live.
+ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT / "gtfs_cleaned"
 
 stop_times = pd.read_csv(DATA_DIR / "stop_times.txt")

@@ -95,11 +95,23 @@ def print_block_length_stats(blocks_dict: dict, heading: str = "Block lengths") 
 
 def plot_block_lengths(blocks_dict: dict, path: Path,
                        title: str = "Trips per block",
-                       subtitle: str = "Typical Monday") -> Path:
+                       subtitle: str = "Typical Monday",
+                       groups: dict | None = None,
+                       group_order: list | None = None,
+                       group_label=str) -> Path:
     """Saves a bar chart of trip count by block number. Returns the path written.
 
     `subtitle` describes the fleet variant; the block and trip counts are
     appended to it.
+
+    `groups` optionally partitions the blocks - block number -> group key, as the
+    multi-depot fleet partitions by home depot. Bars are then laid out one group
+    at a time, separated by a gap and coloured per group, so the distribution can
+    be read within a group and across groups at once. `group_order` fixes the
+    left-to-right order (default: sorted); `group_label` names a group in the
+    legend and above its band. The statistics, fences and mean/median lines stay
+    fleet-wide either way: the question is how each group sits in the whole
+    distribution, not how it compares against itself.
     """
     lengths_by_block = block_lengths(blocks_dict)
     stats = block_length_stats(blocks_dict)
@@ -107,16 +119,46 @@ def plot_block_lengths(blocks_dict: dict, path: Path,
     SURFACE, INK, INK_SECONDARY, MUTED = "#fcfcfb", "#0b0b0b", "#52514e", "#898781"
     GRID, BASELINE = "#e1e0d9", "#c3c2b7"
     TYPICAL, OUTLIER = "#2a78d6", "#d03b3b"  # categorical slot 1; status "critical"
+    GROUP_COLORS = (TYPICAL, "#12897b", "#b8620e", "#7a5bd0")  # categorical slots 1-4
+    GROUP_GAP = 2.0  # Blank x units between one group's last bar and the next group's first.
 
-    block_nums = list(lengths_by_block.keys())
+    # Bars are drawn at `positions`, which equal the block numbers unless a partition
+    # opens a gap between groups. `order` is the left-to-right block sequence.
+    block_nums = sorted(lengths_by_block)
+    if groups is None:
+        order = block_nums
+        positions = {n: float(n) for n in block_nums}
+        group_keys, group_spans, boundaries = [], {}, []
+        colors = [OUTLIER if n in stats["outliers"] else TYPICAL for n in block_nums]
+    else:
+        group_keys = list(group_order) if group_order else sorted({groups[n] for n in block_nums})
+        color_of = {key: GROUP_COLORS[i % len(GROUP_COLORS)] for i, key in enumerate(group_keys)}
+
+        order, positions, group_spans, boundaries = [], {}, {}, []
+        x, last_position = 1.0, None
+        for key in group_keys:
+            members = [n for n in block_nums if groups[n] == key]
+            if last_position is not None:
+                boundaries.append((last_position + x) / 2)
+            start = x
+            for n in members:
+                order.append(n)
+                positions[n] = x
+                x += 1
+            last_position = x - 1
+            group_spans[key] = (start, last_position)
+            x += GROUP_GAP
+        colors = [OUTLIER if n in stats["outliers"] else color_of[groups[n]] for n in order]
+
+    block_nums = order
     lengths = [lengths_by_block[n] for n in block_nums]
-    colors = [OUTLIER if n in stats["outliers"] else TYPICAL for n in block_nums]
+    bar_positions = [positions[n] for n in block_nums]
 
     fig, ax = plt.subplots(figsize=(12, 5.5), dpi=150)
     fig.patch.set_facecolor(SURFACE)
     ax.set_facecolor(SURFACE)
 
-    bars = ax.bar(block_nums, lengths, color=colors, zorder=3)
+    bars = ax.bar(bar_positions, lengths, color=colors, zorder=3)
 
     # Mean, median, and a +/-1 SD band, all drawn under the bars. The two lines
     # land within a few tenths of each other whenever the distribution is near
@@ -126,6 +168,14 @@ def plot_block_lengths(blocks_dict: dict, path: Path,
     ax.axhspan(mean - sd, mean + sd, color=TYPICAL, alpha=0.10, zorder=1)
     ax.axhline(stats["median"], color=MUTED, linewidth=1, linestyle=(0, (4, 3)), zorder=2)
     ax.axhline(mean, color=INK_SECONDARY, linewidth=1, zorder=2)
+
+    # Group bands: a hairline in the gap, and the group's name over its own bars.
+    for boundary in boundaries:
+        ax.axvline(boundary, color=GRID, linewidth=1, zorder=1)
+    for key in group_keys:
+        start, end = group_spans[key]
+        ax.annotate(group_label(key), xy=((start + end) / 2, max(lengths) + 1.3),
+                    ha="center", va="center", fontsize=8, color=INK_SECONDARY)
 
     # Only the extremes are directly labelled; the axis carries everything else.
     for bar, block_num, length in zip(bars, block_nums, lengths):
@@ -142,11 +192,11 @@ def plot_block_lengths(blocks_dict: dict, path: Path,
     ax.set_xlabel("Block number", fontsize=9, color=INK_SECONDARY, labelpad=8)
     ax.set_ylabel("Trips in block", fontsize=9, color=INK_SECONDARY, labelpad=8)
 
-    ax.set_xticks(block_nums)
+    ax.set_xticks(bar_positions)
     ax.set_xticklabels(block_nums, fontsize=7)
     # Stop the ticks at the tallest bar so no gridline runs behind the legend.
     ax.set_yticks(range(0, max(lengths) + 1, 2))
-    ax.set_xlim(0.4, len(block_nums) + 0.6)
+    ax.set_xlim(min(bar_positions) - 0.6, max(bar_positions) + 0.6)
     ax.set_ylim(0, max(lengths) + 2)  # Headroom for the outlier value labels.
     ax.tick_params(colors=MUTED, labelsize=8, length=0)
 
@@ -159,14 +209,22 @@ def plot_block_lengths(blocks_dict: dict, path: Path,
     ax.spines["bottom"].set_color(BASELINE)
     ax.spines["bottom"].set_linewidth(1)
 
-    handles = [plt.Rectangle((0, 0), 1, 1, color=TYPICAL),
-               plt.Rectangle((0, 0), 1, 1, color=OUTLIER),
-               plt.Line2D([], [], color=INK_SECONDARY, linewidth=1),
-               plt.Line2D([], [], color=MUTED, linewidth=1, linestyle=(0, (4, 3))),
-               plt.Rectangle((0, 0), 1, 1, color=TYPICAL, alpha=0.10)]
+    if groups is None:
+        block_handles, block_labels = [plt.Rectangle((0, 0), 1, 1, color=TYPICAL)], ["Block"]
+    else:
+        block_handles = [plt.Rectangle((0, 0), 1, 1, color=color_of[key]) for key in group_keys]
+        block_labels = [f"{group_label(key)} "
+                        f"({sum(1 for n in block_nums if groups[n] == key)} blocks)"
+                        for key in group_keys]
+
+    handles = block_handles + [
+        plt.Rectangle((0, 0), 1, 1, color=OUTLIER),
+        plt.Line2D([], [], color=INK_SECONDARY, linewidth=1),
+        plt.Line2D([], [], color=MUTED, linewidth=1, linestyle=(0, (4, 3))),
+        plt.Rectangle((0, 0), 1, 1, color=TYPICAL, alpha=0.10)]
     legend = ax.legend(handles,
-                       ["Block",
-                        f"Outlier (outside {stats['lower_fence']:.1f}-{stats['upper_fence']:.1f} trips)",
+                       block_labels +
+                       [f"Outlier (outside {stats['lower_fence']:.1f}-{stats['upper_fence']:.1f} trips)",
                         f"Mean {mean:.2f}",
                         f"Median {stats['median']:.1f}",
                         f"+/-1 SD ({sd:.2f})"],
@@ -179,10 +237,11 @@ def plot_block_lengths(blocks_dict: dict, path: Path,
     # Cap the rendered bar thickness at 24px and leave a 2px gap between
     # neighbours. Needs the drawn axes width, so it happens after tight_layout.
     fig.canvas.draw()
-    band_px = ax.get_window_extent().width / len(block_nums)
+    left, right = ax.get_xlim()
+    band_px = ax.get_window_extent().width / (right - left)  # Pixels per x unit, i.e. per bar slot.
     width = min(24.0, max(band_px - 2.0, 1.0)) / band_px
-    for bar, block_num in zip(bars, block_nums):
-        bar.set_x(block_num - width / 2)
+    for bar, position in zip(bars, bar_positions):
+        bar.set_x(position - width / 2)
         bar.set_width(width)
 
     path.parent.mkdir(parents=True, exist_ok=True)

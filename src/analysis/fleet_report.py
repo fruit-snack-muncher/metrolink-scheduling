@@ -1,54 +1,64 @@
-"""Operability statistics for a solved fleet: spans, balance, utilisation, deadheads.
+"""Shared analysis for a solved fleet: block reconstruction, spans, endpoint
+balance, utilisation, deadhead census.
 
-`viz/block_lengths.py` answers how much work each trainset does. This module
-answers where that work happens and what it costs to position for it - the
-questions that decide whether a fleet count is operable rather than merely
-optimal.
-
-Every function takes a `blocks_dict` of `block number -> list of trip ids`, 
-exactly as the model modules expose it, so one module serves every fleet variant. 
-Trip ids arrive as strings from the models and index `typical_monday_trip_schedule` 
-as ints; the conversion is done here rather than pushed onto callers.
-
-Four questions, one function each:
-
-  block_spans        Where does each block start and end, and how long is it?
-  endpoint_balance   Do the blocks leave the fleet where tomorrow needs it?
-  utilisation        How much of a set's day is revenue service?
-  deadhead_census    Which turns are empty moves, and how long do they run?
-
-The base model cannot deadhead by construction, so `deadhead_census` returns no
-moves for it. That is a useful self-check rather than a special case.
+Every function takes a `blocks_dict` of block number -> list of trip ids, so one
+module serves every variant. Trip ids are strings here and ints in
+`typical_monday_trip_schedule`; the conversion is done here, not by callers.
 """
 
-from preformulation import typical_monday_deadhead_times
-from typical_monday_trips import typical_monday_trip_schedule, stops
+from src.data_processing.preformulation import typical_monday_deadhead_times
+from src.data_processing.typical_monday_trips import typical_monday_trip_schedule, stops
+
 
 def hhmmss(seconds: int) -> str:
-    """Seconds past midnight as HH:MM:SS.
-
-    Hours are not capped at 24: GTFS writes a trip running past midnight as
-    e.g. 25:10:00, and the seconds count preserves that.
-    """
+    """Seconds past midnight as HH:MM:SS. Hours are not capped at 24: GTFS
+    writes a trip running past midnight as e.g. 25:10:00."""
     return f"{seconds // 3600:02}:{seconds // 60 % 60:02}:{seconds % 60:02}"
+
 
 def stop_name(stop_id: int) -> str:
     """Station name for a GTFS stop_id."""
     return stops.loc[stops.stop_id == stop_id, "stop_name"].values[0]
 
+
+def blocks_from_solution(trip_ids, arcs) -> dict:
+    """Decomposes the solved DAG into blocks, one per trainset.
+
+    The chosen arcs form vertex-disjoint directed paths, so each trip with no
+    incoming arc starts a block that is walked forward to its end.
+    """
+    arc_departures = {str(a): str(b) for a, b in arcs}
+    arc_arrivals = set(arc_departures.values())  # fast lookup
+
+    blocks = []
+    for t in map(str, trip_ids):
+        if t not in arc_arrivals:
+            block, current = [t], t
+            while current in arc_departures:
+                current = arc_departures[current]
+                block.append(current)
+            blocks.append(block)
+
+    # No trainset performs the same trip twice in a row, and the paths partition
+    # the trips: every trip is served exactly once, by exactly one block.
+    for block in blocks:
+        assert all(first != second for first, second in zip(block, block[1:]))
+    assert sum(len(block) for block in blocks) == len(trip_ids)
+
+    return {i + 1: block for i, block in enumerate(blocks)}
+
+
 def block_spans(blocks_dict: dict) -> dict:
     """Origin, terminus, start, end and span for each block.
 
     The span is first departure to last arrival - the whole time the trainset is
-    committed, revenue service and idling alike. Times are seconds past
-    midnight; stations are returned both as stop_ids and as names, since the
-    balance calculation wants to group on one and print the other.
+    committed, revenue service and idling alike. Stations come back as both
+    stop_ids and names, since the balance groups on one and prints the other.
     """
     spans = {}
     for block_num, block in blocks_dict.items():
-        first_trip, last_trip = int(block[0]), int(block[-1])
-        origin, _, start, _ = typical_monday_trip_schedule[first_trip]
-        _, terminus, _, end = typical_monday_trip_schedule[last_trip]
+        origin, _, start, _ = typical_monday_trip_schedule[int(block[0])]
+        _, terminus, _, end = typical_monday_trip_schedule[int(block[-1])]
         spans[block_num] = {
             "origin_id": origin,
             "terminus_id": terminus,
@@ -60,21 +70,18 @@ def block_spans(blocks_dict: dict) -> dict:
         }
     return spans
 
+
 def endpoint_balance(blocks_dict: dict) -> dict:
     """Blocks originating vs terminating at each station.
 
-    A schedule that repeats daily needs the multiset of block origins to equal
-    the multiset of termini: every set must finish where some set has to start
-    tomorrow. Where they differ, the surplus has to be repositioned overnight by
-    a move no single-day model prices.
-
-    Returns station name -> {"origins", "termini", "deficit"}, where deficit is
-    origins - termini. Negative means sets pile up there; positive means the
-    station needs sets it did not receive.
+    A schedule that repeats daily needs every set to finish where some set has
+    to start tomorrow. Returns station -> {"origins", "termini", "deficit"},
+    deficit being origins - termini: negative means sets pile up there, positive
+    means the station needs sets it did not receive, and the surplus has to be
+    repositioned overnight by a move no single-day model prices.
     """
-    spans = block_spans(blocks_dict)
     balance = {}
-    for info in spans.values():
+    for info in block_spans(blocks_dict).values():
         for station, key in ((info["origin"], "origins"), (info["terminus"], "termini")):
             entry = balance.setdefault(station, {"origins": 0, "termini": 0})
             entry[key] += 1
@@ -82,12 +89,12 @@ def endpoint_balance(blocks_dict: dict) -> dict:
         entry["deficit"] = entry["origins"] - entry["termini"]
     return balance
 
+
 def utilisation(blocks_dict: dict) -> dict:
     """Revenue seconds against total block seconds.
 
-    Revenue time is fixed by the schedule - it is the same 132 trips however
-    they are chained - so this ratio moves only through the denominator. A
-    smaller fleet spreads the same revenue work over fewer, longer blocks.
+    Revenue time is fixed by the schedule - the same 132 trips however they are
+    chained - so this ratio moves only through the denominator.
     """
     revenue = sum(
         typical_monday_trip_schedule[int(trip)][3] - typical_monday_trip_schedule[int(trip)][2]
@@ -101,17 +108,15 @@ def utilisation(blocks_dict: dict) -> dict:
         "share": revenue / block_time,
     }
 
+
 def deadhead_census(blocks_dict: dict) -> dict:
     """Every turn inside a block, split into empty moves and same-station turns.
 
-    A turn is a consecutive pair of trips in one block. When the first ends
-    where the second begins the set simply changes ends; otherwise it must run
-    empty, and the move costs the shortest-path time computed in
+    When a trip ends where the next begins the set simply changes ends;
+    otherwise it runs empty, costing the shortest-path time from
     `preformulation`. `gap` is the whole window between arrival and departure,
-    so `gap - deadhead` is the slack left for the two turnarounds the chaining
-    rule requires.
-
-    Moves are returned longest first, which is the order worth eyeballing.
+    so gap - deadhead is the slack left for the two turnarounds. Moves are
+    returned longest first.
     """
     moves, same_station = [], 0
     for block_num, block in blocks_dict.items():
@@ -139,6 +144,13 @@ def deadhead_census(blocks_dict: dict) -> dict:
         "total_seconds": total,
         "mean_seconds": total / len(moves) if moves else 0,
     }
+
+
+def print_blocks(blocks_dict: dict) -> None:
+    """One line per block: the chain of trips that trainset runs."""
+    for block_num, block in sorted(blocks_dict.items()):
+        print(f"Block {block_num:02} ({len(block)} total trips): {' -> '.join(block)}")
+
 
 def print_fleet_report(blocks_dict: dict, heading: str = "Fleet report") -> None:
     """Prints all four analyses for one solved fleet."""
@@ -183,19 +195,9 @@ def print_fleet_report(blocks_dict: dict, heading: str = "Fleet report") -> None
     print(f"    {census['n_turns']} turns: {census['n_deadheads']} deadhead(s), "
           f"{census['n_same_station']} same-station")
     if census["moves"]:
-        print(f"    {census['total_seconds'] / 3600:.2f} h empty running, "
+        print(f"    {hhmmss(census['total_seconds'])} empty running, "
               f"mean {census['mean_seconds'] / 60:.0f} min")
         for move in census["moves"]:
             print(f"      blk {move['block']:>2}  {move['from']:<34} -> {move['to']:<34}"
                   f"  {move['deadhead'] / 3600:.2f} h empty"
                   f"  of {move['gap'] / 3600:.2f} h gap")
-
-if __name__ == "__main__":
-    # Imported here, not at module scope: each one builds and solves an LP, and
-    # the functions above are useful without paying for either.
-    import zero_depot
-    import zero_depot_deadheading
-
-    print_fleet_report(zero_depot.blocks_dict, "No deadheading")
-    print()
-    print_fleet_report(zero_depot_deadheading.blocks_dict, "Deadheading, penalised")
