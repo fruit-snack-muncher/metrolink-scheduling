@@ -9,7 +9,7 @@ solve once, and nothing here re-derives them. The statistics and the chart live
 in block_lengths, shared with the deadheading variant.
 """
 
-from src.analysis.zero_depot_report import blocks_dict
+from src.analysis.fleet.zero_depot_report import blocks_dict
 from src.viz.block_lengths import FIGURES, plot_block_lengths, print_block_length_stats
 
 PATH = FIGURES / "block_lengths.png"

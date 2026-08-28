@@ -1,8 +1,9 @@
 """Fleet report for the penalised deadheading fleet
 (the penalised_* half of solvers/zero_depot_deadheading.py)."""
 
-from src.analysis.fleet_report import (blocks_from_solution, deadhead_census, hhmmss,
-                                       print_blocks, print_fleet_report)
+from src.analysis.fleet.fleet_report import (blocks_from_solution, deadhead_census, format_blocks,
+                                       format_fleet_report, hhmmss)
+from src.analysis.markdown_report import FLEET_REPORTS, write_report
 from src.data_processing.typical_monday_trips import typical_monday_trip_ids
 from src.solvers.zero_depot_deadheading import penalised_arcs, penalised_fleet_size
 
@@ -21,7 +22,14 @@ deadhead_seconds = deadhead_census(blocks_dict)["total_seconds"]
 # second. The census sums the shortest-path times directly, in whole seconds.
 assert hhmmss(deadhead_seconds) == "06:08:53"
 
+TITLE = "Minimum fleet with deadheading, penalised"
+SUMMARY = ("A set may reposition empty between trips, each arc charged for the empty run. "
+           "31 blocks.")
+
 if __name__ == "__main__":
-    print_blocks(blocks_dict)
-    print(f"\nMinimum fleet size: {penalised_fleet_size} trainsets over {len(blocks_dict)} blocks.\n")
-    print_fleet_report(blocks_dict, "Deadheading, penalised")
+    body = "\n".join([
+        format_blocks(blocks_dict),
+        f"\nMinimum fleet size: {penalised_fleet_size} trainsets over {len(blocks_dict)} blocks.\n",
+        format_fleet_report(blocks_dict, "Deadheading, penalised"),
+    ])
+    print(f"Wrote {write_report(FLEET_REPORTS / 'zero_depot_deadheading.md', TITLE, SUMMARY, 'src.analysis.fleet.zero_depot_deadheading_report', body)}")

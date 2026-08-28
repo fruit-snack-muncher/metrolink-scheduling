@@ -23,6 +23,14 @@ in four rows with mixed signs, the two flow-requirement rows for the trips it
 joins and the two per-depot flow-conservation rows, where it enters +1 at one end
 and -1 at the other, and the depot-capacity rows add more besides. With no TU
 argument to lean on, integrality has to be declared and branched on.
+
+Any of the three variable families - chainings, depot departures, depot arrivals -
+can be pinned at 0 or 1 through `solve`, which is what the sensitivity study in
+analysis/forcing/forcing_sweep.py runs on: mandate or forbid one move, re-solve, and see
+whether the minimum fleet and the flow-cost optimum survive it. Forcing can make
+the problem infeasible, so `solve` returns a status rather than asserting one. The
+module-level names below are the UNFORCED baseline, solved once at import, and are
+what analysis/ reads.
 """
 import pulp
 from collections import defaultdict
@@ -67,8 +75,34 @@ class Model(NamedTuple):
     flow_cost: pulp.LpAffineExpression        # stage 2's objective
 
 
-def build_model(name: str) -> Model:
+class Solution(NamedTuple):
+    """What one (possibly forced) run of `solve` found.
+
+    Everything but `status` is None when the forcing made the problem infeasible.
+    `chained` and `objective` are what the sweep compares against an unforced
+    baseline: the first says whether the minimum fleet is still reachable, the
+    second whether the flow-cost optimum is.
+    """
+    status: str                              # a pulp.LpStatus string
+    fleet_size: int | None
+    chained: int | None                      # stage 1's optimum: chainings used
+    objective: float | None                  # stage 2's flow cost, at the returned solution
+    arcs: list[tuple[int, int]] | None       # bare arcs, as the zero-depot solvers expose them
+    chained_arcs: list[tuple[int, tuple[int, int]]] | None   # the same arcs, depot-labelled
+    home_depots: dict[int, int] | None       # trip -> depot it is drawn from in the morning
+    terminal_depots: dict[int, int] | None   # trip -> depot it is returned to at night
+    depot_fleet_sizes: dict[int, int] | None
+
+
+def build_model(name: str,
+                forced_chainings: dict[tuple[int, tuple[int, int]], int] | None = None,
+                forced_departures: dict[tuple[int, int], int] | None = None,
+                forced_arrivals: dict[tuple[int, int], int] | None = None) -> Model:
     """The whole feasible region, built fresh so the two stages cannot share state.
+
+    The three `forced_%` maps pin variables at 0 or 1, keyed exactly as the three
+    families are elsewhere in this module: (depot, arc) for a chaining, (depot, trip)
+    for a departure or an arrival.
 
     Each node corresponds to a trip_id. Note the trip_id's are not labelled; only the
     arcs are.
@@ -106,6 +140,21 @@ def build_model(name: str) -> Model:
     arc_vars = pulp.LpVariable.dict('w', [chaining_name(depot, arc) for depot, arc in multi_depot_arcs], cat='Binary')
     depot_depart_vars = pulp.LpVariable.dict('d', [str(arc) for arc in multi_depot_departures], cat='Binary')
     depot_arrival_vars = pulp.LpVariable.dict('a', [str(arc) for arc in multi_depot_arrivals], cat='Binary')
+
+    # Forced variables are pinned by their BOUNDS rather than by an added row. Both stages
+    # branch here anyway, so nothing is being protected the way min_path_cover's stage 1 is;
+    # bounds are simply what a fixed variable is, and CBC presolves them away rather than
+    # carrying |forced| extra rows. A KeyError is the right failure - a key naming no
+    # variable would otherwise be a forcing silently never applied.
+    for (depot, arc), value in (forced_chainings or {}).items():
+        pinned = arc_vars[chaining_name(depot, arc)]
+        pinned.lowBound = pinned.upBound = value
+    for (depot, trip), value in (forced_departures or {}).items():
+        pinned = depot_depart_vars[depot_name(depot, trip)]
+        pinned.lowBound = pinned.upBound = value
+    for (depot, trip), value in (forced_arrivals or {}).items():
+        pinned = depot_arrival_vars[depot_name(depot, trip)]
+        pinned.lowBound = pinned.upBound = value
 
     # Every constraint below asks the same two questions of a (depot, trip) pair: what can put a
     # trainset onto this trip, and what can take it off. Answering by filtering the arc lists costs
@@ -192,46 +241,87 @@ def build_model(name: str) -> Model:
 
 
 
-# STAGE 1: the fleet size itself. Chains partition the trips, so the number of chains is
-# len(trips) less the chainings used - maximizing chainings is minimizing the fleet, and
-# unlike the flow cost it cannot be talked out of a trainset by a cheaper deadhead.
-stage1 = build_model("multi_depot_fleet_min")
-stage1.prob.setObjective(stage1.chaining_count)
-stage1.prob.solve(pulp.PULP_CBC_CMD(msg=0))
-assert pulp.LpStatus[stage1.prob.status] == "Optimal"
-chained = round(pulp.value(stage1.prob.objective))
+def solve(forced_chainings: dict[tuple[int, tuple[int, int]], int] | None = None,
+          forced_departures: dict[tuple[int, int], int] | None = None,
+          forced_arrivals: dict[tuple[int, int], int] | None = None) -> Solution:
+    """Both stages, over a feasible region narrowed by whatever is forced.
 
-# STAGE 2: among the solutions achieving that fleet, the cheapest to chain and position.
-# An exact equality, not a bound: the variables are integral, so no tolerance is needed to
-# survive floating-point, and slack here is exactly what would let stage 2 buy its weights
-# back with a trainset.
-stage2 = build_model("multi_depot_fleet_min_weighted")
-stage2.prob.addConstraint(stage2.chaining_count == chained, name='minimum_fleet')
-stage2.prob.setObjective(stage2.flow_cost)
-stage2.prob.solve(pulp.PULP_CBC_CMD(msg=0))
-status = pulp.LpStatus[stage2.prob.status]
-assert status == "Optimal"
+    The three `forced_%` maps are passed straight to `build_model`, and to BOTH stages -
+    a forcing stage 1 respected but stage 2 did not would pin the fleet at a count stage 2
+    is not solving for.
+    """
+    forcing = (forced_chainings, forced_departures, forced_arrivals)
 
-# Every chain of trips begins with exactly one depot departure, so the number of d_%
-# variables at 1 is the fleet size.
-fleet_size = round(sum(var.value() for var in stage2.depart_var.values()))
-chained_arcs = [(depot, arc) for depot, arc in multi_depot_arcs
-                if round(stage2.arc_vars[chaining_name(depot, arc)].value()) == 1]
-depot_fleet_sizes = {depot: round(sum(var.value() for var in stage2.departs_by_depot[depot]))
-                     for depot in OVERNIGHT_DEPOTS}
+    # STAGE 1: the fleet size itself. Chains partition the trips, so the number of chains is
+    # len(trips) less the chainings used - maximizing chainings is minimizing the fleet, and
+    # unlike the flow cost it cannot be talked out of a trainset by a cheaper deadhead.
+    stage1 = build_model("multi_depot_fleet_min", *forcing)
+    stage1.prob.setObjective(stage1.chaining_count)
+    stage1.prob.solve(pulp.PULP_CBC_CMD(msg=0))
+    # Unforced this is always Optimal. A forcing can genuinely contradict the flow rows -
+    # two depots both mandated to open the same trip, say - and that is a finding to report,
+    # not a bug to assert on.
+    if pulp.LpStatus[stage1.prob.status] != "Optimal":
+        return Solution(pulp.LpStatus[stage1.prob.status], *[None] * 8)
+    chained = round(pulp.value(stage1.prob.objective))
 
-# The two ways of counting a fleet have to agree: one departure opens each chain, and the
-# chains partition the trips.
-assert fleet_size == len(typical_monday_trip_ids) - chained
-assert len(chained_arcs) == chained
+    # STAGE 2: among the solutions achieving that fleet, the cheapest to chain and position.
+    # An exact equality, not a bound: the variables are integral, so no tolerance is needed to
+    # survive floating-point, and slack here is exactly what would let stage 2 buy its weights
+    # back with a trainset.
+    stage2 = build_model("multi_depot_fleet_min_weighted", *forcing)
+    stage2.prob.addConstraint(stage2.chaining_count == chained, name='minimum_fleet')
+    stage2.prob.setObjective(stage2.flow_cost)
+    stage2.prob.solve(pulp.PULP_CBC_CMD(msg=0))
+    status = pulp.LpStatus[stage2.prob.status]
+    # Stage 1's own solution satisfies every row here, so infeasibility would mean the two
+    # stages disagree about the feasible region. Still returned rather than asserted, so one
+    # bad point cannot take a whole sweep down.
+    if status != "Optimal":
+        return Solution(status, *[None] * 8)
+
+    # Every chain of trips begins with exactly one depot departure, so the number of d_%
+    # variables at 1 is the fleet size.
+    fleet_size = round(sum(var.value() for var in stage2.depart_var.values()))
+    chained_arcs = [(depot, arc) for depot, arc in multi_depot_arcs
+                    if round(stage2.arc_vars[chaining_name(depot, arc)].value()) == 1]
+    depot_fleet_sizes = {depot: round(sum(var.value() for var in stage2.departs_by_depot[depot]))
+                         for depot in OVERNIGHT_DEPOTS}
+
+    # The two ways of counting a fleet have to agree: one departure opens each chain, and the
+    # chains partition the trips. True under any forcing, so these stay here; the assertion
+    # that the answer is 31 belongs to the unforced baseline alone, and lives below.
+    assert fleet_size == len(typical_monday_trip_ids) - chained
+    assert len(chained_arcs) == chained
+
+    # The depot label is carried by the arcs, but analysis/ works on bare arcs, exactly as the
+    # zero-depot solvers expose them. So the label is handed over separately, as the two ends of
+    # each chain: which depot a trip is drawn from in the morning, and returned to at night.
+    arcs = [arc for _, arc in chained_arcs]
+    home_depots = {trip: depot for (depot, trip), var in stage2.depart_var.items() if round(var.value()) == 1}
+    terminal_depots = {trip: depot for (depot, trip), var in stage2.arrival_var.items() if round(var.value()) == 1}
+
+    return Solution(status=status,
+                    fleet_size=fleet_size,
+                    chained=chained,
+                    objective=pulp.value(stage2.prob.objective),
+                    arcs=arcs,
+                    chained_arcs=chained_arcs,
+                    home_depots=home_depots,
+                    terminal_depots=terminal_depots,
+                    depot_fleet_sizes=depot_fleet_sizes)
+
+
+# The UNFORCED baseline, solved once at import. analysis/ reads these names, and the sweep
+# in analysis/forcing/forcing_sweep.py compares every forced run against this one.
+baseline = solve()
+status = baseline.status
+fleet_size, chained = baseline.fleet_size, baseline.chained
+arcs, chained_arcs = baseline.arcs, baseline.chained_arcs
+home_depots, terminal_depots = baseline.home_depots, baseline.terminal_depots
+depot_fleet_sizes = baseline.depot_fleet_sizes
+
 assert fleet_size == 31
-
-# The depot label is carried by the arcs, but analysis/ works on bare arcs, exactly as the
-# zero-depot solvers expose them. So the label is handed over separately, as the two ends of
-# each chain: which depot a trip is drawn from in the morning, and returned to at night.
-arcs = [arc for _, arc in chained_arcs]
-home_depots = {trip: depot for (depot, trip), var in stage2.depart_var.items() if round(var.value()) == 1}
-terminal_depots = {trip: depot for (depot, trip), var in stage2.arrival_var.items() if round(var.value()) == 1}
 
 if __name__ == "__main__":
     print(f"status: {status}")

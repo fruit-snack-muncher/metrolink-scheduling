@@ -17,18 +17,21 @@ penalised model is that same stage 1 followed by a stage 2 that picks the
 cheapest of them. So the two share their fleet size by construction, and differ
 only in whether anything decides which minimum-fleet day gets run.
 
-Reported on by analysis/zero_depot_deadheading_report.py and
-analysis/zero_depot_deadheading_UNWEIGHTED_report.py.
+Reported on by analysis/fleet/zero_depot_deadheading_report.py and
+analysis/fleet/zero_depot_deadheading_UNWEIGHTED_report.py.
 """
 
 from src.data_processing.preformulation import weights_and_arcs
 from src.data_processing.typical_monday_trips import typical_monday_trip_ids
 from src.solvers.min_path_cover import solve
 
-penalised_fleet_size, penalised_arcs = solve(typical_monday_trip_ids, weights_and_arcs)
+unweighted_weights_and_arcs = [(1, arc) for _, arc in weights_and_arcs]
 
-unweighted_fleet_size, unweighted_arcs = solve(
-    typical_monday_trip_ids, [(1, arc) for _, arc in weights_and_arcs])
+penalised = solve(typical_monday_trip_ids, weights_and_arcs)
+penalised_fleet_size, penalised_arcs = penalised.fleet_size, penalised.arcs
+
+unweighted = solve(typical_monday_trip_ids, unweighted_weights_and_arcs)
+unweighted_fleet_size, unweighted_arcs = unweighted.fleet_size, unweighted.arcs
 
 # 31 trainsets - four fewer than without deadheading. Equal by construction, since
 # both are stage 1 of the same problem, so the fleet size is not an artifact of the

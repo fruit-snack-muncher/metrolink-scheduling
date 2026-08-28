@@ -13,8 +13,9 @@ zero-depot models could not see: depot -> first trip in the morning, and last tr
 block, so those legs are censused separately here.
 """
 
-from src.analysis.fleet_report import (block_spans, blocks_from_solution, hhmmss,
-                                       print_blocks, print_fleet_report, stop_name)
+from src.analysis.fleet.fleet_report import (block_spans, blocks_from_solution, format_blocks,
+                                       format_fleet_report, hhmmss, stop_name)
+from src.analysis.markdown_report import FLEET_REPORTS, write_report
 from src.data_processing.preformulation import (OVERNIGHT_CAPACITIES, OVERNIGHT_DEPOTS,
                                                 typical_monday_deadhead_times)
 from src.data_processing.typical_monday_trips import typical_monday_trip_ids
@@ -83,32 +84,44 @@ def depot_legs(blocks_dict: dict, depot_of_block: dict) -> dict:
     }
 
 
-def print_depot_legs(census: dict, heading: str = "Depot positioning") -> None:
-    """Prints the depot legs, one line per block that runs empty at either end."""
-    print(f"{heading} ({census['n_empty_legs']} empty legs, "
-          f"{census['n_at_depot_legs']} already at depot)")
-    print(f"    {hhmmss(census['total_seconds'])} empty running to and from depots")
+def format_depot_legs(census: dict, heading: str = "Depot positioning") -> str:
+    """The depot legs, one line per block that runs empty at either end."""
+    lines = [f"{heading} ({census['n_empty_legs']} empty legs, "
+             f"{census['n_at_depot_legs']} already at depot)",
+             f"    {hhmmss(census['total_seconds'])} empty running to and from depots"]
     for leg in census["legs"]:
         if leg["total_seconds"] == 0:
             continue  # Starts and ends at its own depot; nothing to position.
-        print(f"      blk {leg['block']:>2}  depot {leg['depot']:<4} "
-              f"{leg['out_seconds'] / 3600:.2f} h out to {leg['origin']:<34}"
-              f"  {leg['back_seconds'] / 3600:.2f} h back from {leg['terminus']}")
+        lines.append(f"      blk {leg['block']:>2}  depot {leg['depot']:<4} "
+                     f"{leg['out_seconds'] / 3600:.2f} h out to {leg['origin']:<34}"
+                     f"  {leg['back_seconds'] / 3600:.2f} h back from {leg['terminus']}")
+    return "\n".join(lines)
 
 
 legs_census = depot_legs(blocks_dict, depot_of_block)
 
+TITLE = "Minimum fleet with every set home overnight"
+SUMMARY = ("Blocks partitioned by home depot: reported per depot, then fleet-wide, then the "
+           "depot-positioning census. 31 blocks, 24 at LAUS and 7 at San Bernardino.")
+
 if __name__ == "__main__":
+    sections = []
     for depot, capacity in zip(OVERNIGHT_DEPOTS, OVERNIGHT_CAPACITIES):
         blocks = blocks_by_depot[depot]
         heading = f"Depot {depot}, {stop_name(depot)} - {len(blocks)} of {capacity} trainsets"
-        print(f"\n{'=' * len(heading)}\n{heading}\n{'=' * len(heading)}\n")
-        print_blocks(blocks)
-        print()
-        print_fleet_report(blocks, heading)
+        sections.append(f"\n{'=' * len(heading)}\n{heading}\n{'=' * len(heading)}\n")
+        sections.append(format_blocks(blocks))
+        sections.append("")
+        sections.append(format_fleet_report(blocks, heading))
 
-    print(f"\nMinimum fleet size: {fleet_size} trainsets over {len(blocks_dict)} blocks, "
-          f"{' + '.join(f'{n} at {d}' for d, n in depot_fleet_sizes.items())}.\n")
-    print_fleet_report(blocks_dict, "Multi-depot, fleet-wide")
-    print()
-    print_depot_legs(legs_census)
+    sections.append(f"\nMinimum fleet size: {fleet_size} trainsets over {len(blocks_dict)} blocks, "
+                    f"{' + '.join(f'{n} at {d}' for d, n in depot_fleet_sizes.items())}.\n")
+    sections.append(format_fleet_report(blocks_dict, "Multi-depot, fleet-wide"))
+    sections.append("")
+    sections.append(format_depot_legs(legs_census))
+
+    # Each depot banner carries a leading blank line, to separate it from the section above.
+    # The first one has nothing above it but the opening fence, so that blank is dropped -
+    # exactly as it was when these reports were assembled by pasting stdout in by hand.
+    body = "\n".join(sections).removeprefix("\n")
+    print(f"Wrote {write_report(FLEET_REPORTS / 'multi_depot.md', TITLE, SUMMARY, 'src.analysis.fleet.multi_depot_report', body)}")

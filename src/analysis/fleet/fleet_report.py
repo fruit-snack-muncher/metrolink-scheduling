@@ -146,58 +146,64 @@ def deadhead_census(blocks_dict: dict) -> dict:
     }
 
 
-def print_blocks(blocks_dict: dict) -> None:
+def format_blocks(blocks_dict: dict) -> str:
     """One line per block: the chain of trips that trainset runs."""
-    for block_num, block in sorted(blocks_dict.items()):
-        print(f"Block {block_num:02} ({len(block)} total trips): {' -> '.join(block)}")
+    return "\n".join(f"Block {block_num:02} ({len(block)} total trips): {' -> '.join(block)}"
+                     for block_num, block in sorted(blocks_dict.items()))
 
 
-def print_fleet_report(blocks_dict: dict, heading: str = "Fleet report") -> None:
-    """Prints all four analyses for one solved fleet."""
+def format_fleet_report(blocks_dict: dict, heading: str = "Fleet report") -> str:
+    """All four analyses for one solved fleet, as text.
+
+    Returns rather than prints, so the report scripts can assemble a whole document and
+    write it to its .md themselves - see analysis/markdown_report.py.
+    """
     spans = block_spans(blocks_dict)
     balance = endpoint_balance(blocks_dict)
     use = utilisation(blocks_dict)
     census = deadhead_census(blocks_dict)
 
-    print(f"{heading} ({len(blocks_dict)} blocks)")
+    lines = [f"{heading} ({len(blocks_dict)} blocks)"]
 
-    print("\n  Blocks")
+    lines.append("\n  Blocks")
     for block_num in sorted(spans):
         info = spans[block_num]
-        print(f"    {block_num:>2}  {info['origin']:<34} -> {info['terminus']:<34}"
-              f"  {hhmmss(info['start'])} -> {hhmmss(info['end'])}"
-              f"  span {hhmmss(info['span'])}")
+        lines.append(f"    {block_num:>2}  {info['origin']:<34} -> {info['terminus']:<34}"
+                     f"  {hhmmss(info['start'])} -> {hhmmss(info['end'])}"
+                     f"  span {hhmmss(info['span'])}")
 
     all_spans = sorted(info["span"] for info in spans.values())
     median = all_spans[len(all_spans) // 2] if len(all_spans) % 2 else \
         (all_spans[len(all_spans) // 2 - 1] + all_spans[len(all_spans) // 2]) // 2
-    print(f"\n    span min / median / max   {hhmmss(all_spans[0])} / "
-          f"{hhmmss(median)} / {hhmmss(all_spans[-1])}")
+    lines.append(f"\n    span min / median / max   {hhmmss(all_spans[0])} / "
+                 f"{hhmmss(median)} / {hhmmss(all_spans[-1])}")
 
-    print("\n  Endpoint balance")
+    lines.append("\n  Endpoint balance")
     for station in sorted(balance):
         entry = balance[station]
         flag = "" if entry["deficit"] == 0 else f"   <- {entry['deficit']:+d}"
-        print(f"    {station:<34}  {entry['origins']:>2} out  {entry['termini']:>2} in{flag}")
+        lines.append(f"    {station:<34}  {entry['origins']:>2} out  {entry['termini']:>2} in{flag}")
     unbalanced = {s: e["deficit"] for s, e in balance.items() if e["deficit"]}
     if unbalanced:
         stranded = sum(d for d in unbalanced.values() if d < 0)
-        print(f"    {-stranded} block(s) finish out of position across "
-              f"{len(unbalanced)} station(s)")
+        lines.append(f"    {-stranded} block(s) finish out of position across "
+                     f"{len(unbalanced)} station(s)")
     else:
-        print("    balanced: every station sends out as many blocks as it receives")
+        lines.append("    balanced: every station sends out as many blocks as it receives")
 
-    print("\n  Utilisation")
-    print(f"    revenue {use['revenue_seconds'] / 3600:.0f} h of "
-          f"{use['block_seconds'] / 3600:.0f} block-hours = {use['share']:.0%}")
+    lines.append("\n  Utilisation")
+    lines.append(f"    revenue {use['revenue_seconds'] / 3600:.0f} h of "
+                 f"{use['block_seconds'] / 3600:.0f} block-hours = {use['share']:.0%}")
 
-    print("\n  Turns")
-    print(f"    {census['n_turns']} turns: {census['n_deadheads']} deadhead(s), "
-          f"{census['n_same_station']} same-station")
+    lines.append("\n  Turns")
+    lines.append(f"    {census['n_turns']} turns: {census['n_deadheads']} deadhead(s), "
+                 f"{census['n_same_station']} same-station")
     if census["moves"]:
-        print(f"    {hhmmss(census['total_seconds'])} empty running, "
-              f"mean {census['mean_seconds'] / 60:.0f} min")
+        lines.append(f"    {hhmmss(census['total_seconds'])} empty running, "
+                     f"mean {census['mean_seconds'] / 60:.0f} min")
         for move in census["moves"]:
-            print(f"      blk {move['block']:>2}  {move['from']:<34} -> {move['to']:<34}"
-                  f"  {move['deadhead'] / 3600:.2f} h empty"
-                  f"  of {move['gap'] / 3600:.2f} h gap")
+            lines.append(f"      blk {move['block']:>2}  {move['from']:<34} -> {move['to']:<34}"
+                         f"  {move['deadhead'] / 3600:.2f} h empty"
+                         f"  of {move['gap'] / 3600:.2f} h gap")
+
+    return "\n".join(lines)

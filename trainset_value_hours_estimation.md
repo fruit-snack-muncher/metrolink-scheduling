@@ -1,16 +1,38 @@
 # Estimating `TRAINSET_DAYS_PER_DEADHEAD_HOUR`
 
-The deadheading model in `src/preformulation.py` maximizes
+The deadheading model in `src/data_processing/preformulation.py` weights each arc of the
+chaining DAG by
 
 ```
-sum_ij (1 - d_ij * K) x_ij  =  (number of chainings) - (total deadhead hours) * K
+w_ij  =  1 - d_ij * K
 ```
 
-over the arcs of the chaining DAG, where `d_ij` is the deadhead duration in hours and
-`K = TRAINSET_DAYS_PER_DEADHEAD_HOUR`. Each chaining removes one trainset, so it is worth
-**1**; the empty run it requires costs `d_ij * K`. `K` is therefore the **fraction of a
-trainset consumed per hour of empty running**, and its reciprocal the *break-even
-deadhead*: the longest light move worth making rather than adding a set to service.
+where `d_ij` is the deadhead duration in hours and `K = TRAINSET_DAYS_PER_DEADHEAD_HOUR`.
+Each chaining removes one trainset, so it is worth **1**; the empty run it requires costs
+`d_ij * K`. `K` is therefore the **fraction of a trainset consumed per hour of empty
+running**, and its reciprocal the *break-even deadhead*: the longest light move worth making
+rather than adding a set to service.
+
+## Where `K` enters the solve, and where it does not
+
+These weights are **not** maximised against the fleet size. The solver runs in two stages
+(see `src/solvers/min_path_cover.py`):
+
+1. **Stage 1** maximises the bare chaining count and never sees `K` at all. Its optimum is
+   the minimum fleet.
+2. **Stage 2** maximises `sum_ij w_ij x_ij` subject to an equality constraint pinning the
+   chaining count to stage 1's answer.
+
+So `K` chooses *among* minimum-fleet solutions and cannot trade a trainset for mileage: the
+pinned equality forbids it structurally, not merely by being priced badly. Everything below
+should be read with that division in mind — `K` decides which 31-trainset day gets run, never
+whether the day takes 31 sets.
+
+This document originally described the single blended objective
+`sum_ij (1 - d_ij * K) x_ij`, maximised in one pass. That formulation is what the two-stage
+solve replaced, precisely because it **cannot promise the fleet size it reports**: one
+chaining fewer with enough empty running saved scores identically and comes back as a larger
+fleet. The consequences of the change are marked below.
 
 ```
         marginal cost of one deadhead train-hour       ~$665 / h
@@ -78,33 +100,40 @@ $665/h over $4,030/day is **K ≈ 0.165 trainset-days per deadhead train-hour**,
 
 **At this value the penalty never forbids an arc.** The longest deadhead this network
 offers is 4.32 h — Oceanside and Lancaster are far apart, but not six hours apart. At
-K = 0.17 that worst arc costs 0.73 of a trainset against the 1.0 it saves, so the weights
-only *order* solutions that chain equally many trips; they never rule one out. Above
-**K = 0.232** — inside the upper half of the range quoted — the longest arcs turn
-net-negative and the model refuses them outright. That does not change the answer here
-(the five deadheads used are all under 1.5 h), but "never forbids" is a fact about this
-K, not the range.
+K = 0.17 that worst arc costs 0.73 of a trainset against the 1.0 it saves. Above
+**K = 0.232** an arc that long turns net-negative, i.e. stage 2 would rather not have it —
+though under the pinned chaining count stage 2 cannot simply drop it, only prefer a
+different set of 101 chainings. Since the five deadheads actually used are all under 1.5 h,
+the distinction never bites here.
 
-**The fleet size does not depend on K.** Sweeping the solver:
+**The fleet size does not depend on K — now by construction.** Sweeping the solver as it
+stands, every K returns the same 31 trainsets, because stage 1 computes the fleet before any
+weight is applied:
 
 | K | break-even | fleet | deadheads | deadhead h |
 | --- | --- | --- | --- | --- |
-| 2.0 | 0.5 h | 35 | 0 | 0 |
-| 1.0 | 1.0 h | 34 | 1 | 0.84 |
-| 0.5 – 0.385 | 2.0 – 2.6 h | 32 | 3 | 3.47 |
-| **0.37 – 1e-7** | **2.7 h – 1e7 h** | **31** | **5** | **6.15** |
-| 1e-8 | 1e8 h | 31 | 37 | 58.41 |
+| 2.0 | 0.5 h | **31** | 5 | 6.15 |
+| 1.0 | 1.0 h | **31** | 5 | 6.15 |
+| 0.5 – 0.17 | 2.0 – 5.9 h | **31** | 5 | 6.15 |
+| 1e-7 | 1e7 h | 31 | 8 | 7.66 |
+| 1e-8 | 1e8 h | 31 | 38 | 54.92 |
 
-Every value in the plausible economic range falls inside the flat band, so grounding the
-constant in cost data strengthens the justification without moving the answer. The margin
-is not enormous: the top of the range, K = 0.33, sits just under the 0.37 at which the
-model starts trading trainsets for mileage — charge crew at the full rate, assume a
-shorter consist, and take the low end of the capital estimate together, and the answer
-would begin to move. Below 1e-7 the coefficients collapse into CBC's tolerance, the
-tie-break is lost entirely, and the solver returns an arbitrary optimal matching. What
-actually keeps the model on the right side of the band is not K but
-`assert(fleet_size == 31)` in `src/zero_depot_deadheading.py` — 31 is the unweighted
-optimum, so it fires the moment a penalty outbids a chaining. Its five deadheads:
+Compare the *old* single-objective model, whose fleet moved with K — 35 sets at K = 2.0,
+34 at K = 1.0, 32 around K = 0.5, reaching 31 only below K = 0.37. That table was the
+strongest argument for splitting the solve: a constant estimated from cost data was
+silently determining the headline result. It no longer can.
+
+What survives the change is the tie-break, and it has a floor rather than a band. Below
+about 1e-7 the coefficients collapse into CBC's tolerance, stage 2 can no longer tell
+solutions apart, and the empty running drifts up to whatever an arbitrary optimal matching
+gives — 7.66 h, then 54.92 h. Anywhere above that floor, including the entire plausible
+economic range of **0.10–0.33**, the answer is the same 5 deadheads and 6.15 h. Grounding K
+in cost data now buys a *defensible* choice among minimum-fleet days rather than protecting
+the fleet size, which is no longer at risk.
+
+The guard `assert penalised_fleet_size == 31` in `src/solvers/zero_depot_deadheading.py`
+therefore no longer fires on K — stage 1 cannot return anything else. It now guards the
+arc set and the solver plumbing instead. Its five deadheads:
 
 | Duration | Move |
 | --- | --- |

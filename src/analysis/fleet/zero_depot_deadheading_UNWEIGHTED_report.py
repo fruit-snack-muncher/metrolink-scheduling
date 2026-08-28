@@ -7,8 +7,9 @@ running is therefore not a result but an artifact of which optimum CBC returned,
 and it is asserted as a range rather than a value. See min_path_cover.
 """
 
-from src.analysis.fleet_report import (blocks_from_solution, deadhead_census, hhmmss,
-                                       print_blocks, print_fleet_report)
+from src.analysis.fleet.fleet_report import (blocks_from_solution, deadhead_census, format_blocks,
+                                       format_fleet_report, hhmmss)
+from src.analysis.markdown_report import FLEET_REPORTS, write_report
 from src.data_processing.typical_monday_trips import typical_monday_trip_ids
 from src.solvers.zero_depot_deadheading import unweighted_arcs, unweighted_fleet_size
 
@@ -27,7 +28,14 @@ assert LEAST_POSSIBLE <= deadhead_seconds <= MOST_POSSIBLE, hhmmss(deadhead_seco
 # variant returns, so anything above it is empty running the weighting would remove.
 assert deadhead_seconds > LEAST_POSSIBLE
 
+TITLE = "Minimum fleet with deadheading, unpenalised (control)"
+SUMMARY = ("The same arcs with unit weights. Also 31 blocks, but 61 hours of empty running "
+           "instead of 6 - the whole case for weighting the arcs.")
+
 if __name__ == "__main__":
-    print_blocks(blocks_dict)
-    print(f"\nMinimum fleet size: {unweighted_fleet_size} trainsets over {len(blocks_dict)} blocks.\n")
-    print_fleet_report(blocks_dict, "Deadheading, unpenalised")
+    body = "\n".join([
+        format_blocks(blocks_dict),
+        f"\nMinimum fleet size: {unweighted_fleet_size} trainsets over {len(blocks_dict)} blocks.\n",
+        format_fleet_report(blocks_dict, "Deadheading, unpenalised"),
+    ])
+    print(f"Wrote {write_report(FLEET_REPORTS / 'zero_depot_deadheading_unweighted.md', TITLE, SUMMARY, 'src.analysis.fleet.zero_depot_deadheading_UNWEIGHTED_report', body)}")

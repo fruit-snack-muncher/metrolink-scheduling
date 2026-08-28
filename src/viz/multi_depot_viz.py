@@ -15,8 +15,8 @@ nothing here re-derives them. The statistics and the chart live in block_lengths
 shared with the zero-depot variants.
 """
 
-from src.analysis.fleet_report import stop_name
-from src.analysis.multi_depot_report import blocks_dict, depot_of_block
+from src.analysis.fleet.fleet_report import stop_name
+from src.analysis.fleet.multi_depot_report import blocks_dict, depot_of_block
 from src.data_processing.preformulation import OVERNIGHT_DEPOTS
 from src.viz.block_lengths import FIGURES, plot_block_lengths, print_block_length_stats
 
