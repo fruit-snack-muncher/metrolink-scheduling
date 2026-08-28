@@ -106,6 +106,11 @@ against specific chainings, because the latter vary with the CBC build. It also 
 sweep's "critical arcs" are the genuinely load-bearing ones — a move whose removal costs a
 trainset, as opposed to the thousands that are merely one option among many.
 
+It follows that the .md file reports in src/analysis/reports/fleet_reports, for example, are
+only illustrative of one possible solution chosen by CBC. Computing the persistence of 
+particular arcs across optimal solutions and trip block distributions may produce further
+significant insights. 
+
 ## Scenarios
 
 | Scenario | Fleet | Empty running | Solver |
@@ -157,27 +162,6 @@ or forbidding one move at a time to see what it costs. Findings are in
   deadheading, 21 chainings are critical.
 - **The objective is far more fragile than the fleet size** — thousands of forcings keep the
   minimum fleet while losing the optimal positioning, which is the planner's real margin.
-
-## Note: PuLP 4.0 will break the solvers
-
-Every decision variable in this repo is built with `pulp.LpVariable.dict`, which PuLP 3.3
-deprecates:
-
-> `LpVariable.dict is deprecated; use prob.add_variable_dict(...) for PuLP 4.0 compatibility.`
-
-Four call sites are affected — one in `src/solvers/min_path_cover.py` and three in
-`src/solvers/multi_depot.py`, which builds a dict per variable family (chainings, depot
-departures, depot arrivals).
-
-**Nothing is broken today, and nothing needs doing urgently.** `pyproject.toml` constrains
-`PuLP>=3.3,<4` and `requirements.txt` pins `PuLP==3.3.2`, so 4.0 cannot arrive by accident.
-Ordinary solver runs are also silent, because Python suppresses `DeprecationWarning` by
-default; the warnings are visible only under `pytest`, which un-hides them.
-
-Porting the four call sites to `prob.add_variable_dict(...)` is the work that has to happen
-before that `<4` bound can be lifted. Since the fleet sizes are the results this repo exists
-to report, treat the existing `assert fleet_size == 35 / 31 / 31` guards in the solvers as
-the acceptance test for that migration: the numbers must not move.
 
 
 ## Setup
@@ -254,3 +238,24 @@ Two conventions worth knowing. **Code and output never mix**: everything under
 And **the solvers solve at import** — importing `multi_depot` runs both stages — so the module
 holds its results as `fleet_size`, `arcs` and friends, which is what the reports and figures
 read.
+
+## Note: PuLP 4.0 will break the solvers
+
+Every decision variable in this repo is built with `pulp.LpVariable.dict`, which PuLP 3.3
+deprecates:
+
+> `LpVariable.dict is deprecated; use prob.add_variable_dict(...) for PuLP 4.0 compatibility.`
+
+Four call sites are affected — one in `src/solvers/min_path_cover.py` and three in
+`src/solvers/multi_depot.py`, which builds a dict per variable family (chainings, depot
+departures, depot arrivals).
+
+**Nothing is broken today, and nothing needs doing urgently.** `pyproject.toml` constrains
+`PuLP>=3.3,<4` and `requirements.txt` pins `PuLP==3.3.2`, so 4.0 cannot arrive by accident.
+Ordinary solver runs are also silent, because Python suppresses `DeprecationWarning` by
+default; the warnings are visible only under `pytest`, which un-hides them.
+
+Porting the four call sites to `prob.add_variable_dict(...)` is the work that has to happen
+before that `<4` bound can be lifted. Since the fleet sizes are the results this repo exists
+to report, treat the existing `assert fleet_size == 35 / 31 / 31` guards in the solvers as
+the acceptance test for that migration: the numbers must not move.
