@@ -86,7 +86,7 @@ every K**, because stage 1 never sees K at all. See
 [min_path_cover.py](src/solvers/min_path_cover.py) for the full argument, including why stage 1
 may relax to a continuous LP and stage 2 may not.
 
-### Stage 2 pins the numbers, not the solution
+### Solutions are not unique
 
 **Stage 2 does not make the answer unique.** It pins the fleet size and the optimal objective
 *value* — and so the total empty running, which the objective is a linear function of — but
