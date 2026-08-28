@@ -18,46 +18,6 @@ Facility, so they share no equipment with the fleet being sized. Removing them t
 from 178 trips to the **132** modelled here; the 46 Arrow trips are identified by
 `trip_short_name` in the 38xx range.
 
-## Layout
-
-The pipeline runs left to right: GTFS tables in, arc set, solvers, reports.
-
-```
-gtfs_raw/                     Metrolink's published GTFS feed, untouched
-gtfs_cleaned/                 the subset this repo reads
-  typical_monday.txt            generated - the 132 trips of the service day
-src/
-  data_processing/
-    data_collection.py          picks the exception-free day out of the feed
-    typical_monday_trips.py     each trip as (origin, terminus, depart, arrive)
-    preformulation.py           which chainings are legal, and what each is worth
-  solvers/
-    min_path_cover.py           the two-stage LP, shared by both zero-depot variants
-    zero_depot.py               no deadheading                          -> 35
-    zero_depot_deadheading.py   deadheading, penalised and unpenalised   -> 31
-    multi_depot.py              every set home overnight, as max-cost flow -> 31
-  analysis/
-    markdown_report.py          assembles a report and writes its .md
-    fleet/                      given a solved fleet, describe it
-      fleet_report.py             blocks, spans, endpoint balance, deadhead census
-      *_report.py                 one per scenario
-    forcing/                    re-solve under forced variables, and describe that
-      forcing_sweep.py            produces the sweep CSVs
-      sweep_report.py             reads them back
-    reports/                    OUTPUT ONLY - no code here
-      fleet_reports/*.md          one per scenario
-      sweeps/*.csv                one row per forced re-solve
-      sweeps.md                   what the sweep found
-  viz/                          block-length figures -> figures/
-tests/                          valid_pair, chaining, and the generated-data guard
-trainset_value_hours_estimation.md   where the deadhead penalty comes from
-```
-
-Two conventions worth knowing. **Code and output never mix**: everything under
-`analysis/reports/` is generated, and every `.md` there names the command that regenerates it.
-And **the solvers solve at import** — importing `multi_depot` runs both stages — so the module
-holds its results as `fleet_size`, `arcs` and friends, which is what the reports and figures
-read.
 
 ## Modelling assumptions
 
@@ -218,3 +178,79 @@ Porting the four call sites to `prob.add_variable_dict(...)` is the work that ha
 before that `<4` bound can be lifted. Since the fleet sizes are the results this repo exists
 to report, treat the existing `assert fleet_size == 35 / 31 / 31` guards in the solvers as
 the acceptance test for that migration: the numbers must not move.
+
+
+## Setup
+
+Python 3.13 or newer. From a fresh clone:
+
+```
+python -m venv .venv
+.venv\Scripts\activate          # macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt
+pip install -e . --no-deps
+```
+
+`requirements.txt` carries the pinned versions that reproduce the reported results;
+`--no-deps` installs this repo *without* letting pip re-resolve them. The editable install is
+not optional — every module imports itself as `src.solvers...`, so `src` has to be a top-level
+package on `sys.path`. Without it, any entry point fails at its first import with
+`ModuleNotFoundError: No module named 'src'`.
+
+Run a solver or report as a module from the repo root:
+
+```
+python -m src.solvers.multi_depot
+python -m src.analysis.fleet.multi_depot_report
+```
+
+`python src/analysis/fleet/multi_depot_report.py` works too once the editable install is in
+place, but `-m` works either way. `pytest` needs neither, since `pyproject.toml` sets
+`pythonpath = ["."]`.
+
+In VS Code, three files under `.vscode/` are checked in so a fresh clone works without
+per-machine setup, and each covers a different path: [.env](.vscode/.env) puts the repo root on
+`PYTHONPATH` for the ▶ Run button, [launch.json](.vscode/launch.json) does the same for the
+debugger, and `python.analysis.extraPaths` in [settings.json](.vscode/settings.json) tells
+Pylance, which reads neither. Select the `.venv` interpreter and all three work.
+
+## Layout
+
+The pipeline runs left to right: GTFS tables in, arc set, solvers, reports.
+
+```
+gtfs_raw/                     Metrolink's published GTFS feed, untouched
+gtfs_cleaned/                 the subset this repo reads
+  typical_monday.txt            generated - the 132 trips of the service day
+src/
+  data_processing/
+    data_collection.py          picks the exception-free day out of the feed
+    typical_monday_trips.py     each trip as (origin, terminus, depart, arrive)
+    preformulation.py           which chainings are legal, and what each is worth
+  solvers/
+    min_path_cover.py           the two-stage LP, shared by both zero-depot variants
+    zero_depot.py               no deadheading                          -> 35
+    zero_depot_deadheading.py   deadheading, penalised and unpenalised   -> 31
+    multi_depot.py              every set home overnight, as max-cost flow -> 31
+  analysis/
+    markdown_report.py          assembles a report and writes its .md
+    fleet/                      given a solved fleet, describe it
+      fleet_report.py             blocks, spans, endpoint balance, deadhead census
+      *_report.py                 one per scenario
+    forcing/                    re-solve under forced variables, and describe that
+      forcing_sweep.py            produces the sweep CSVs
+      sweep_report.py             reads them back
+    reports/                    OUTPUT ONLY - no code here
+      fleet_reports/*.md          one per scenario
+      sweeps/*.csv                one row per forced re-solve
+      sweeps.md                   what the sweep found
+  viz/                          block-length figures -> figures/
+tests/                          valid_pair, chaining, and the generated-data guard
+trainset_value_hours_estimation.md   where the deadhead penalty comes from
+```
+
+Two conventions worth knowing. **Code and output never mix**: everything under
+`analysis/reports/` is generated, and every `.md` there names the command that regenerates it.
+And **the solvers solve at import** — importing `multi_depot` runs both stages — so the module
+holds its results as `fleet_size`, `arcs` and friends, which is what the reports and figures
+read.

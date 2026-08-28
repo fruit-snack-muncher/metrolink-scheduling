@@ -30,9 +30,10 @@ dist/
 # Editor / OS
 .vscode/*
 # ...except the shared workspace config, which is what puts the repo root on
-# sys.path for a fresh clone. Both files are checked in deliberately.
+# sys.path for a fresh clone. All three files are checked in deliberately.
 !.vscode/settings.json
 !.vscode/.env
+!.vscode/launch.json
 .idea/
 .DS_Store
 Thumbs.db
